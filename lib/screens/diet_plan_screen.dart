@@ -195,9 +195,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _targetItem('Protein', p.targetProtein.toInt(), 'g', MacroSnapTheme.rose),
-              _targetItem('Carbs', p.targetCarbs.toInt(), 'g', MacroSnapTheme.amber),
-              _targetItem('Fats', p.targetFats.toInt(), 'g', MacroSnapTheme.blue),
+              _targetItem('Protein', p.targetProtein.toInt(), 'g', MacroSnapTheme.rose, isDark),
+              _targetItem('Carbs', p.targetCarbs.toInt(), 'g', MacroSnapTheme.amber, isDark),
+              _targetItem('Fats', p.targetFats.toInt(), 'g', MacroSnapTheme.blue, isDark),
             ],
           ),
           const SizedBox(height: 12),
@@ -207,7 +207,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     );
   }
 
-  Widget _targetItem(String label, int value, String unit, Color color) {
+  Widget _targetItem(String label, int value, String unit, Color color, bool isDark) {
     return Column(children: [
       Container(
         width: 52, height: 52,
@@ -215,7 +215,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         child: Center(child: Text('$value', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color))),
       ),
       const SizedBox(height: 4),
-      Text('$label ($unit)', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+      Text('$label ($unit)', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF94A3B8))),
     ]);
   }
 
@@ -231,19 +231,19 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         children: [
           Text("Today's Progress", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
           const SizedBox(height: 16),
-          _progressRow('Calories', cal, p.targetCalories, ratio, MacroSnapTheme.amber),
+          _progressRow('Calories', cal, p.targetCalories, ratio, MacroSnapTheme.amber, isDark),
           const SizedBox(height: 12),
-          _progressRow('Protein', protein.toInt(), p.targetProtein.toInt(), protRatio, MacroSnapTheme.rose),
+          _progressRow('Protein', protein.toInt(), p.targetProtein.toInt(), protRatio, MacroSnapTheme.rose, isDark),
         ],
       ),
     );
   }
 
-  Widget _progressRow(String label, int current, int target, double ratio, Color color) {
+  Widget _progressRow(String label, int current, int target, double ratio, Color color, bool isDark) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-        Text('$current / $target', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
+        Text(label, style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
+        Text('$current / $target', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
       ]),
       const SizedBox(height: 6),
       ClipRRect(
@@ -261,11 +261,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         children: [
           Text('Suggested Meal Plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
           const SizedBox(height: 16),
-          _mealItem(Icons.wb_sunny_rounded, 'Breakfast (~${(p.targetCalories * 0.25).round()} kcal)', _breakfastSuggestion(p), MacroSnapTheme.amber),
-          _mealItem(Icons.free_breakfast_rounded, 'Morning Snack (~${(p.targetCalories * 0.1).round()} kcal)', _snackSuggestion(p), MacroSnapTheme.emerald),
-          _mealItem(Icons.wb_cloudy_rounded, 'Lunch (~${(p.targetCalories * 0.3).round()} kcal)', _lunchSuggestion(p), MacroSnapTheme.blue),
-          _mealItem(Icons.nightlight_round, 'Evening Snack (~${(p.targetCalories * 0.1).round()} kcal)', _snackSuggestion(p), MacroSnapTheme.emerald),
-          _mealItem(Icons.nights_stay_rounded, 'Dinner (~${(p.targetCalories * 0.25).round()} kcal)', _dinnerSuggestion(p), MacroSnapTheme.rose),
+          _mealItem(Icons.wb_sunny_rounded, 'Breakfast (~${(p.targetCalories * 0.25).round()} kcal)', _breakfastSuggestion(p), MacroSnapTheme.amber, isDark),
+          _mealItem(Icons.free_breakfast_rounded, 'Morning Snack (~${(p.targetCalories * 0.1).round()} kcal)', _snackSuggestion(p), MacroSnapTheme.emerald, isDark),
+          _mealItem(Icons.wb_cloudy_rounded, 'Lunch (~${(p.targetCalories * 0.3).round()} kcal)', _lunchSuggestion(p), MacroSnapTheme.blue, isDark),
+          _mealItem(Icons.nightlight_round, 'Evening Snack (~${(p.targetCalories * 0.1).round()} kcal)', _snackSuggestion(p), MacroSnapTheme.emerald, isDark),
+          _mealItem(Icons.nights_stay_rounded, 'Dinner (~${(p.targetCalories * 0.25).round()} kcal)', _dinnerSuggestion(p), MacroSnapTheme.rose, isDark),
           const SizedBox(height: 16),
           Text('Portion sizes are approximate. Adjust based on your appetite and progress.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : const Color(0xFFCBD5E1))),
         ],
@@ -273,7 +273,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     );
   }
 
-  Widget _mealItem(IconData icon, String title, String suggestion, Color color) {
+  Widget _mealItem(IconData icon, String title, String suggestion, Color color, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -284,9 +284,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1E293B))),
           const SizedBox(height: 4),
-          Text(suggestion, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+          Text(suggestion, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF94A3B8))),
         ])),
       ]),
     );

@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 class UpdateChecker {
   static const _owner = 'prabhasaaho213-rgb';
   static const _repo = 'MacroSnap';
-  static const _currentVersion = 'v1.1.1';
+  static const _currentVersion = 'v1.1.2';
 
   static Future<bool> hasUpdate() async {
     try {
