@@ -22,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+  String _avatar = '😎';
 
   @override
   void initState() {
@@ -33,6 +34,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     MealStore.instance.load().then((_) {
       if (mounted) _animController.forward();
+    });
+    DietPlanService.instance.load().then((_) {
+      final p = DietPlanService.instance.profile;
+      if (p != null && mounted) setState(() => _avatar = p.avatar);
     });
     UpdateChecker.checkAndPrompt(context);
   }
@@ -112,25 +117,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
               const SizedBox(width: 12),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DietPlanScreen())).then((_) {
+                  final p = DietPlanService.instance.profile;
+                  if (p != null) setState(() => _avatar = p.avatar);
+                }),
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(child: Text(_avatar, style: const TextStyle(fontSize: 22))),
                 ),
-                child: const Icon(Icons.person_rounded, color: Colors.white, size: 24),
               ),
             ],
           ),

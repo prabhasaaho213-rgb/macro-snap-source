@@ -19,6 +19,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   Goal _goal = Goal.loseWeight;
   ActivityLevel _activity = ActivityLevel.sedentary;
   DietProfile? _profile;
+  String _avatar = '😎';
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     if (p != null && mounted) {
       setState(() {
         _profile = p;
+        _avatar = p.avatar;
         _weightCtrl.text = p.weightKg.toStringAsFixed(1);
         _heightCtrl.text = p.heightCm.toStringAsFixed(1);
         _ageCtrl.text = p.age.toString();
@@ -50,6 +52,45 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     super.dispose();
   }
 
+  void _showAvatarPicker(bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? Colors.white24 : const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            Text('Choose Your Avatar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12, runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: DietProfile.avatars.map((a) => GestureDetector(
+                onTap: () {
+                  setState(() { _avatar = a; });
+                  Navigator.pop(ctx);
+                },
+                child: Container(
+                  width: 60, height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _avatar == a ? MacroSnapTheme.emerald.withValues(alpha: 0.15) : (isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
+                    border: _avatar == a ? Border.all(color: MacroSnapTheme.emerald, width: 2) : null,
+                  ),
+                  child: Center(child: Text(a, style: const TextStyle(fontSize: 28))),
+                ),
+              )).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _calculate() {
     final w = double.tryParse(_weightCtrl.text);
     final h = double.tryParse(_heightCtrl.text);
@@ -60,7 +101,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       );
       return;
     }
-    final profile = DietProfile(weightKg: w, heightCm: h, age: a, gender: _gender, goal: _goal, activity: _activity);
+    final profile = DietProfile(weightKg: w, heightCm: h, age: a, gender: _gender, goal: _goal, activity: _activity, avatar: _avatar);
     DietPlanService.instance.save(profile);
     setState(() => _profile = profile);
   }
@@ -70,7 +111,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     _weightCtrl.text = '70';
     _heightCtrl.text = '170';
     _ageCtrl.text = '25';
-    setState(() { _gender = Gender.male; _goal = Goal.maintain; _activity = ActivityLevel.moderate; _profile = null; });
+    setState(() { _gender = Gender.male; _goal = Goal.maintain; _activity = ActivityLevel.moderate; _profile = null; _avatar = '😎'; });
   }
 
   @override
@@ -109,6 +150,25 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(
+            child: GestureDetector(
+              onTap: () => _showAvatarPicker(isDark),
+              child: Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: MacroSnapTheme.emerald.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                child: Center(child: Text(_avatar, style: const TextStyle(fontSize: 36))),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text('Tap to change avatar', style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+          ),
+          const SizedBox(height: 16),
           Text('Your Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
           const SizedBox(height: 16),
           Row(

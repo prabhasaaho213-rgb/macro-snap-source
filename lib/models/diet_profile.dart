@@ -13,6 +13,7 @@ class DietProfile {
   final Gender gender;
   final Goal goal;
   final ActivityLevel activity;
+  final String avatar;
 
   DietProfile({
     required this.weightKg,
@@ -21,7 +22,14 @@ class DietProfile {
     required this.gender,
     required this.goal,
     required this.activity,
+    this.avatar = '😎',
   });
+
+  static const List<String> avatars = [
+    '😎', '🥳', '🤠', '🤓',
+    '🧐', '😇', '🤩', '😋',
+    '🤪', '🦊', '🐼', '🐱',
+  ];
 
   double get bmr {
     if (gender == Gender.male) {
@@ -74,6 +82,7 @@ class DietProfile {
     'gender': gender.name,
     'goal': goal.name,
     'activity': activity.name,
+    'avatar': avatar,
   };
 
   factory DietProfile.fromJson(Map<String, dynamic> json) => DietProfile(
@@ -83,6 +92,7 @@ class DietProfile {
     gender: Gender.values.firstWhere((g) => g.name == json['gender']),
     goal: Goal.values.firstWhere((g) => g.name == json['goal']),
     activity: ActivityLevel.values.firstWhere((a) => a.name == json['activity']),
+    avatar: json['avatar'] as String? ?? '😎',
   );
 }
 
