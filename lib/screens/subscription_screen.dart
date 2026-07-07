@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../core/theme.dart';
 import '../widgets/glass_card.dart';
 import 'phone_login_screen.dart';
@@ -241,6 +242,42 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     'UPI, Cards, Netbanking & Wallets accepted',
                     style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : const Color(0xFFCBD5E1)),
                   ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('OR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white30 : const Color(0xFF94A3B8))),
+                      ),
+                      Expanded(child: Divider(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Pay via UPI', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                  const SizedBox(height: 12),
+                  _upiButton('Google Pay', 'com.google.android.apps.nbu.paisa.user', isDark),
+                  const SizedBox(height: 10),
+                  _upiButton('PhonePe', 'com.phonepe.app', isDark),
+                  const SizedBox(height: 10),
+                  _upiButton('Paytm', 'net.one97.paytm', isDark),
+                  const SizedBox(height: 10),
+                  _upiButton('BHIM', 'in.org.npci.upiapp', isDark),
+                  const SizedBox(height: 16),
+                  Text('After payment, tap below to activate', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : const Color(0xFF94A3B8))),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity, height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => _subscribed = true),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: MacroSnapTheme.emerald,
+                        side: BorderSide(color: MacroSnapTheme.emerald.withValues(alpha: 0.4)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text("I've Paid - Activate", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
                 ],
               ],
               if (_subscribed) ...[
@@ -266,6 +303,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               const SizedBox(height: 40),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _upiButton(String name, String package, bool isDark) {
+    return SizedBox(
+      width: double.infinity, height: 48,
+      child: OutlinedButton(
+        onPressed: () async {
+          final uri = Uri.parse('upi://pay?pa=7569086885@yespop&pn=MacroSnap&am=1&cu=INR&tn=MacroSnap+Pro+Subscription');
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            try {
+              final playUri = Uri.parse('https://play.google.com/store/apps/details?id=$package');
+              if (await canLaunchUrl(playUri)) {
+                await launchUrl(playUri, mode: LaunchMode.externalApplication);
+              }
+            } catch (_) {}
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
+          side: BorderSide(color: isDark ? Colors.white30 : const Color(0xFFE2E8F0)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.payments_rounded, size: 20, color: MacroSnapTheme.emerald),
+            const SizedBox(width: 8),
+            Text('$name', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          ],
         ),
       ),
     );
