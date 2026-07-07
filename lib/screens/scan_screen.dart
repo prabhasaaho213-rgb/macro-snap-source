@@ -141,6 +141,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                         colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
                       ),
                       onTap: () => _pickImage(ImageSource.camera),
+                      isDark: isDark,
                     ),
                     const SizedBox(height: 12),
                     _ScanOption(
@@ -151,6 +152,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                         colors: [MacroSnapTheme.amber, Color(0xFFFBBF24)],
                       ),
                       onTap: () => _pickImage(ImageSource.gallery),
+                      isDark: isDark,
                     ),
                   ],
                 ),
@@ -169,6 +171,7 @@ class _ScanOption extends StatelessWidget {
   final String subtitle;
   final Gradient gradient;
   final VoidCallback onTap;
+  final bool isDark;
 
   const _ScanOption({
     required this.icon,
@@ -176,6 +179,7 @@ class _ScanOption extends StatelessWidget {
     required this.subtitle,
     required this.gradient,
     required this.onTap,
+    required this.isDark,
   });
 
   @override
@@ -214,24 +218,25 @@ class _ScanOption extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
-                      color: Color(0xFF94A3B8),
+                      color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+            Icon(Icons.chevron_right_rounded,
+                color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
           ],
         ),
       ),
