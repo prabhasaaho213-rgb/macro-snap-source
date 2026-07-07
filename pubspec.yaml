@@ -20,6 +20,7 @@ dependencies:
   google_mlkit_image_labeling: ^0.14.2
   url_launcher: ^6.3.2
   razorpay_flutter: ^1.4.1
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:

@@ -3,6 +3,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
 import '../widgets/glass_card.dart';
 import 'phone_login_screen.dart';
@@ -27,6 +28,27 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _loadSubscription();
+  }
+
+  Future<void> _loadSubscription() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _subscribed = prefs.getBool('subscribed') ?? false);
+  }
+
+  Future<void> _activateSubscription() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('subscribed', true);
+    if (mounted) {
+      setState(() => _subscribed = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Welcome to MacroSnap Pro!'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   @override
@@ -48,15 +70,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
       final data = jsonDecode(verifyRes.body);
       if (data['subscribed'] == true) {
-        setState(() => _subscribed = true);
+        await _activateSubscription();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Welcome to MacroSnap Pro!'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) Navigator.pop(context);
           });
@@ -269,7 +284,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   SizedBox(
                     width: double.infinity, height: 48,
                     child: OutlinedButton(
-                      onPressed: () => setState(() => _subscribed = true),
+                      onPressed: _activateSubscription,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: MacroSnapTheme.emerald,
                         side: BorderSide(color: MacroSnapTheme.emerald.withValues(alpha: 0.4)),
@@ -294,7 +309,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextButton(
-                  onPressed: () => setState(() => _subscribed = false),
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('subscribed', false);
+                    setState(() => _subscribed = false);
+                  },
                   child: const Text('Cancel Subscription', style: TextStyle(color: MacroSnapTheme.rose)),
                 ),
               ],
