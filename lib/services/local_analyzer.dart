@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'food_database.dart';
 

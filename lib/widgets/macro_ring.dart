@@ -43,7 +43,7 @@ class MacroRing extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${value.toStringAsFixed(0)}',
+                    value.toStringAsFixed(0),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,

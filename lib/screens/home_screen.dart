@@ -259,21 +259,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 MacroRing(
-                  progress: (MealStore.instance.todayProtein / 150).clamp(0.0, 1.0) as double,
+                  progress: (MealStore.instance.todayProtein / 150).clamp(0.0, 1.0),
                   value: MealStore.instance.todayProtein,
                   target: 150,
                   label: 'Protein',
                   color: MacroSnapTheme.rose,
                 ),
                 MacroRing(
-                  progress: (MealStore.instance.todayCarbs / 300).clamp(0.0, 1.0) as double,
+                  progress: (MealStore.instance.todayCarbs / 300).clamp(0.0, 1.0),
                   value: MealStore.instance.todayCarbs,
                   target: 300,
                   label: 'Carbs',
                   color: MacroSnapTheme.amber,
                 ),
                 MacroRing(
-                  progress: (MealStore.instance.todayFats / 67).clamp(0.0, 1.0) as double,
+                  progress: (MealStore.instance.todayFats / 67).clamp(0.0, 1.0),
                   value: MealStore.instance.todayFats,
                   target: 67,
                   label: 'Fats',
@@ -316,8 +316,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       await Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (_, __, ___) => const ScanScreen(),
-                          transitionsBuilder: (_, a, __, child) =>
+                          pageBuilder: (_, _, _) => const ScanScreen(),
+                          transitionsBuilder: (_, a, _, child) =>
                               FadeTransition(opacity: a, child: child),
                           transitionDuration: const Duration(milliseconds: 400),
                         ),
@@ -365,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     onTap: () async {
                       await DietPlanService.instance.load();
-                      if (mounted) {
+                      if (context.mounted) {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const DietPlanScreen()));
                       }
                     },

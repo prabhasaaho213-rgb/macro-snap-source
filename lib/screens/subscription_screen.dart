@@ -23,7 +23,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   bool _subscribed = false;
   bool _paying = false;
   String? _subscribedDate;
-  String _serverUrl = 'https://macro-snap-backend-production.up.railway.app';
+  final String _serverUrl = 'https://macro-snap-backend-production.up.railway.app';
   AnimationController? _animController;
   Animation<double>? _checkAnim;
 
@@ -44,11 +44,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     final phone = prefs.getString('phone');
     final subscribed = prefs.getBool('subscribed') ?? false;
     final date = prefs.getString('subscribed_at');
-    if (mounted) setState(() {
-      _subscribed = subscribed;
-      _phone = phone;
-      _subscribedDate = date;
-    });
+    if (mounted) {
+      setState(() {
+        _subscribed = subscribed;
+        _phone = phone;
+        _subscribedDate = date;
+      });
+    }
   }
 
   Future<void> _activateSubscription() async {
