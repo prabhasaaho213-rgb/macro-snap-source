@@ -19,7 +19,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _phoneController = TextEditingController(text: '+91 ');
   final _otpControllers = List.generate(6, (_) => TextEditingController());
   final _otpFocusNodes = List.generate(6, (_) => FocusNode());
-  final _googleSignIn = GoogleSignIn();
+  final _googleSignIn = GoogleSignIn(
+    serverClientId: '562037381-u1ht24q03sacnkkhfohqf1jvlvjubdl3.apps.googleusercontent.com',
+  );
   String? _verificationId;
   bool _otpSent = false;
   bool _loading = false;
