@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "YOUR_PROJECT_NUMBER",
-    "project_id": "YOUR_PROJECT_ID",
-    "storage_bucket": "YOUR_PROJECT_ID.appspot.com"
+    "project_number": "562037381",
+    "project_id": "macrosnap-cfde3",
+    "storage_bucket": "macrosnap-cfde3.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_HASH",
+        "mobilesdk_app_id": "1:562037381:android:1b2ad3ac42dc3c3a145fec",
         "android_client_info": {
           "package_name": "com.macrosnap.macro_snap"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "YOUR_API_KEY"
+          "current_key": "AIzaSyAkjzBfjZE0ZIvjFaDRh0pg7H4ZpW19cC8"
         }
       ],
       "services": {
