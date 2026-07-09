@@ -125,7 +125,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         children: [
                           Text('₹', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: MacroSnapTheme.emerald)),
                           const SizedBox(width: 2),
-                          Text('1', style: TextStyle(fontSize: 56, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B), letterSpacing: -2, height: 1)),
+                          Text('49', style: TextStyle(fontSize: 56, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B), letterSpacing: -2, height: 1)),
                           const SizedBox(width: 4),
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
@@ -134,7 +134,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('That\'s just ₹0.03 per day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: MacroSnapTheme.emerald.withValues(alpha: 0.8))),
+                      Text('One-time payment • Unlimited access', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: MacroSnapTheme.emerald.withValues(alpha: 0.8))),
                     ],
                   ),
                 ),
@@ -172,7 +172,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       Expanded(child: Divider(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('Pay ₹1 via UPI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white30 : const Color(0xFF94A3B8))),
+                        child: Text('Pay ₹49 via UPI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white30 : const Color(0xFF94A3B8))),
                       ),
                       Expanded(child: Divider(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
                     ],
@@ -239,7 +239,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       width: double.infinity, height: 48,
       child: OutlinedButton(
         onPressed: () async {
-          final uri = Uri.parse('upi://pay?pa=7569086885@yespop&pn=MacroSnap&am=1&cu=INR&tn=MacroSnap+Pro+Subscription');
+          final uri = Uri.parse('upi://pay?pa=7569086885@yespop&pn=MacroSnap&am=49&cu=INR&tn=MacroSnap+Pro+Subscription');
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri, mode: LaunchMode.externalApplication);
           } else {
