@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
 import 'home_screen.dart';
@@ -18,10 +19,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _phoneController = TextEditingController(text: '+91 ');
   final _otpControllers = List.generate(6, (_) => TextEditingController());
   final _otpFocusNodes = List.generate(6, (_) => FocusNode());
+  final _googleSignIn = GoogleSignIn();
   String? _verificationId;
   bool _otpSent = false;
   bool _loading = false;
   bool _verifying = false;
+  bool _googleLoading = false;
   int _resendTimer = 0;
   String _error = '';
 
@@ -92,7 +95,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     await _signIn(credential);
   }
 
-  Future<void> _signIn(PhoneAuthCredential credential) async {
+  Future<void> _signIn(AuthCredential credential) async {
     try {
       await FirebaseAuth.instance.signInWithCredential(credential);
       final phone = FirebaseAuth.instance.currentUser?.phoneNumber ?? _phoneController.text.trim();
@@ -114,6 +117,55 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       }
     } catch (e) {
       if (mounted) setState(() { _verifying = false; _error = 'Verification failed: ${e.toString()}'; });
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() { _googleLoading = true; _error = ''; });
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        if (mounted) setState(() { _googleLoading = false; _error = 'Sign in cancelled'; });
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('No user after sign in');
+
+      final email = user.email ?? googleUser.email;
+      final name = user.displayName ?? googleUser.displayName ?? 'User';
+      final photoUrl = user.photoURL ?? googleUser.photoUrl;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('phone', email);
+      await prefs.setString('email', email);
+      await prefs.setString('name', name);
+      if (photoUrl != null) await prefs.setString('photo_url', photoUrl);
+
+      try {
+        await http.post(
+          Uri.parse('https://macro-snap-backend-production.up.railway.app/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'phone': email, 'email': email, 'name': name}),
+        );
+      } catch (_) {}
+
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context, email);
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() { _googleLoading = false; _error = 'Google sign in failed: ${e.toString()}'; });
     }
   }
 
@@ -157,7 +209,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   Text('MacroSnap', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1A1A2E))),
                   const SizedBox(height: 4),
                   Text(
-                    _otpSent ? 'Enter the 6-digit code sent to your phone' : 'Enter your mobile number to continue',
+                    _otpSent ? 'Enter the 6-digit code sent to your phone' : 'Sign in to continue',
                     style: TextStyle(fontSize: 13, color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
                   ),
                   const SizedBox(height: 24),
@@ -168,6 +220,34 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
                       child: Text(_error, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12)),
                     ),
+                  SizedBox(
+                    width: double.infinity, height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _googleLoading ? null : _signInWithGoogle,
+                      icon: _googleLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', width: 20, height: 20, errorBuilder: (_, _, _) => const Icon(Icons.g_mobiledata, size: 24)),
+                      label: Text(_googleLoading ? 'Signing in...' : 'Sign in with Google',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: isDark ? Colors.white24 : const Color(0xFFD1D5DB)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('or', style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                      ),
+                      Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   if (!_otpSent)
                     TextField(
                       controller: _phoneController,
