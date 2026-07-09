@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
+import 'home_screen.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
   final String? returnRoute;
@@ -107,7 +108,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
           body: jsonEncode({'phone': phone}),
         );
       } catch (_) {}
-      if (mounted) Navigator.pop(context, phone);
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context, phone);
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _verifying = false);
