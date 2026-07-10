@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -171,6 +172,19 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     }
   }
 
+  Future<void> _continueAsGuest() async {
+    final guestId = 'guest_${Random().nextInt(999999)}';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('phone', guestId);
+    if (mounted) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.pop(context, guestId);
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      }
+    }
+  }
+
   void _onOtpChange(int index, String val) {
     if (val.isNotEmpty && index < 5) _otpFocusNodes[index + 1].requestFocus();
   }
@@ -238,7 +252,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _continueAsGuest,
+                    child: Text('Continue as Guest',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
