@@ -202,6 +202,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     await prefs.setString('phone', email);
     await prefs.setString('email', email);
     await prefs.setString('name', email.split('@').first);
+    try {
+      await http.post(
+        Uri.parse('https://macro-snap-backend-production.up.railway.app/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'phone': email, 'email': email, 'name': email.split('@').first}),
+      );
+    } catch (_) {}
     if (mounted) {
       if (Navigator.of(context).canPop()) {
         Navigator.pop(context, email);
@@ -215,6 +222,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final guestId = 'guest_${Random().nextInt(999999)}';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('phone', guestId);
+    try {
+      await http.post(
+        Uri.parse('https://macro-snap-backend-production.up.railway.app/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'phone': guestId, 'name': 'Guest'}),
+      );
+    } catch (_) {}
     if (mounted) {
       if (Navigator.of(context).canPop()) {
         Navigator.pop(context, guestId);
