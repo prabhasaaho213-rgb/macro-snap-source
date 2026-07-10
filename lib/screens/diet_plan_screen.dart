@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
 import '../models/diet_profile.dart';
 import '../services/meal_store.dart';
 import '../widgets/glass_card.dart';
+import 'subscription_screen.dart';
 
 class DietPlanScreen extends StatefulWidget {
   const DietPlanScreen({super.key});
@@ -15,11 +19,16 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
+  final _serverUrl = 'https://macro-snap-backend-production.up.railway.app';
   Gender _gender = Gender.male;
   Goal _goal = Goal.loseWeight;
   ActivityLevel _activity = ActivityLevel.sedentary;
   DietProfile? _profile;
   String _avatar = '😎';
+  bool _subscribed = false;
+  bool _generating = false;
+  Map<String, dynamic>? _aiPlan;
+  String _aiError = '';
 
   @override
   void initState() {
@@ -30,17 +39,22 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   Future<void> _loadProfile() async {
     await DietPlanService.instance.load();
     final p = DietPlanService.instance.profile;
-    if (p != null && mounted) {
-      setState(() {
-        _profile = p;
-        _avatar = p.avatar;
-        _weightCtrl.text = p.weightKg.toStringAsFixed(1);
-        _heightCtrl.text = p.heightCm.toStringAsFixed(1);
-        _ageCtrl.text = p.age.toString();
-        _gender = p.gender;
-        _goal = p.goal;
-        _activity = p.activity;
-      });
+    final prefs = await SharedPreferences.getInstance();
+    final subscribed = prefs.getBool('subscribed') ?? false;
+    if (mounted) {
+      setState(() => _subscribed = subscribed);
+      if (p != null) {
+        setState(() {
+          _profile = p;
+          _avatar = p.avatar;
+          _weightCtrl.text = p.weightKg.toStringAsFixed(1);
+          _heightCtrl.text = p.heightCm.toStringAsFixed(1);
+          _ageCtrl.text = p.age.toString();
+          _gender = p.gender;
+          _goal = p.goal;
+          _activity = p.activity;
+        });
+      }
     }
   }
 
@@ -106,12 +120,40 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     setState(() => _profile = profile);
   }
 
+  Future<void> _generateAiPlan() async {
+    if (_profile == null) return;
+    if (!_subscribed) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+      return;
+    }
+    setState(() { _generating = true; _aiError = ''; _aiPlan = null; });
+    try {
+      final resp = await http.post(
+        Uri.parse('$_serverUrl/generate-diet-plan'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'weight': _profile!.weightKg,
+          'height': _profile!.heightCm,
+          'age': _profile!.age,
+          'gender': _profile!.gender.name,
+          'goal': _profile!.goal.name,
+          'activity': _profile!.activity.name,
+        }),
+      );
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      if (resp.statusCode != 200) throw Exception(data['error'] ?? 'Failed to generate');
+      if (mounted) setState(() { _aiPlan = data; _generating = false; });
+    } catch (e) {
+      if (mounted) setState(() { _aiError = e.toString().replaceFirst('Exception: ', ''); _generating = false; });
+    }
+  }
+
   void _reset() {
     DietPlanService.instance.save(DietProfile(weightKg: 70, heightCm: 170, age: 25, gender: Gender.male, goal: Goal.maintain, activity: ActivityLevel.moderate));
     _weightCtrl.text = '70';
     _heightCtrl.text = '170';
     _ageCtrl.text = '25';
-    setState(() { _gender = Gender.male; _goal = Goal.maintain; _activity = ActivityLevel.moderate; _profile = null; _avatar = '😎'; });
+    setState(() { _gender = Gender.male; _goal = Goal.maintain; _activity = ActivityLevel.moderate; _profile = null; _avatar = '😎'; _aiPlan = null; _aiError = ''; });
   }
 
   @override
@@ -134,6 +176,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             if (_profile != null) ...[
               const SizedBox(height: 20),
               _buildTargetsCard(isDark),
+              const SizedBox(height: 16),
+              _buildAiSection(isDark),
               const SizedBox(height: 16),
               _buildProgressCard(isDark),
               const SizedBox(height: 16),
@@ -238,6 +282,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
 
   Widget _buildTargetsCard(bool isDark) {
     final p = _profile!;
+    final bmi = p.weightKg / ((p.heightCm / 100) * (p.heightCm / 100));
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +296,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             const Spacer(),
             Text('${p.targetCalories} kcal', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B))),
           ]),
-          const Divider(height: 24),
+          const SizedBox(height: 8),
+          Text('BMI ${bmi.toStringAsFixed(1)} | BMR ${p.bmr.round()} kcal | TDEE ${p.tdee.round()} kcal',
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+          const Divider(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -260,8 +308,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
               _targetItem('Fats', p.targetFats.toInt(), 'g', MacroSnapTheme.blue, isDark),
             ],
           ),
-          const SizedBox(height: 12),
-          Text('BMR: ${p.bmr.round()} kcal | TDEE: ${p.tdee.round()} kcal', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : const Color(0xFF94A3B8))),
         ],
       ),
     );
@@ -277,6 +323,118 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       const SizedBox(height: 4),
       Text('$label ($unit)', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF94A3B8))),
     ]);
+  }
+
+  Widget _buildAiSection(bool isDark) {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text('AI', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(width: 8),
+            Text('Personalized Meal Plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+          ]),
+          const SizedBox(height: 16),
+          if (_aiPlan != null) ...[
+            _buildAiMeals(isDark),
+            if (_aiPlan!['plan'] is Map && (_aiPlan!['plan'] as Map)['tips'] != null) ...[
+              const SizedBox(height: 12),
+              ...((_aiPlan!['plan'] as Map)['tips'] as List).map((tip) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('💡 ', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF94A3B8))),
+                  Expanded(child: Text('$tip', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF94A3B8)))),
+                ]),
+              )),
+            ],
+            if (_aiPlan!['plan'] is Map && (_aiPlan!['plan'] as Map)['water'] != null) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                Icon(Icons.water_drop, size: 16, color: MacroSnapTheme.blue),
+                const SizedBox(width: 6),
+                Text('${_aiPlan!['plan']['water']}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF94A3B8))),
+              ]),
+            ],
+          ] else ...[
+            if (_aiError.isNotEmpty)
+              Container(
+                width: double.infinity, padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
+                child: Text(_aiError, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12)),
+              ),
+            SizedBox(
+              width: double.infinity, height: 48,
+              child: FilledButton.icon(
+                onPressed: _generating ? null : _generateAiPlan,
+                icon: _generating
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Icon(_subscribed ? Icons.auto_awesome_rounded : Icons.lock_outline_rounded, size: 18),
+                label: Text(_generating ? 'Generating...' : _subscribed ? 'Generate AI Meal Plan' : 'Subscribe to Unlock AI Plan',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _subscribed ? MacroSnapTheme.emerald : const Color(0xFF94A3B8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiMeals(bool isDark) {
+    if (_aiPlan!['plan'] is! Map) return const SizedBox.shrink();
+    final meals = (_aiPlan!['plan'] as Map)['meals'] as List? ?? [];
+    if (meals.isEmpty) return const SizedBox.shrink();
+    return Column(children: meals.map((m) {
+      final meal = m as Map<String, dynamic>;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Text(meal['time'] ?? '', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: MacroSnapTheme.emerald)),
+              const Spacer(),
+              Text('${meal['calories'] ?? 0} kcal', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+            ]),
+            const SizedBox(height: 4),
+            Text(meal['name'] ?? '', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+            const SizedBox(height: 4),
+            Text(meal['description'] ?? '', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
+            const SizedBox(height: 4),
+            Row(children: [
+              _macroChip('P ${meal['protein_g'] ?? 0}g', MacroSnapTheme.rose),
+              const SizedBox(width: 6),
+              _macroChip('C ${meal['carbs_g'] ?? 0}g', MacroSnapTheme.amber),
+              const SizedBox(width: 6),
+              _macroChip('F ${meal['fats_g'] ?? 0}g', MacroSnapTheme.blue),
+            ]),
+          ]),
+        ),
+      );
+    }).toList());
+  }
+
+  Widget _macroChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+      child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+    );
   }
 
   Widget _buildProgressCard(bool isDark) {
