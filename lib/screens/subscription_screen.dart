@@ -212,7 +212,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       } else {
         final msg = response.status == UpiTransactionStatus.failure
             ? 'Payment failed. Check UPI PIN and try again.'
-            : 'Payment ${response.status.name}. Try again or pay manually below.';
+            : 'Payment ${response.status.name}. Try again or pay via QR below.';
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(msg),
@@ -226,7 +226,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       }
     } on UpiException catch (e) {
       final msg = e.message.contains('no UPI apps')
-          ? 'No UPI apps found. Install GPay/PhonePe or pay manually via QR.'
+          ? 'No UPI apps found. Use QR code below to pay.'
           : e.message;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -290,7 +290,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               ),
               const SizedBox(height: 24),
               Text(
-                _subscribed ? 'You\'re a Pro!' : 'Unlock Full Access',
+                _subscribed ? "You're a Pro!" : 'Unlock Full Access',
                 style: TextStyle(
                   fontSize: 28, fontWeight: FontWeight.w800,
                   color: isDark ? Colors.white : const Color(0xFF1E293B),
@@ -328,7 +328,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('₹',
+                          Text('\u20B9',
                               style: TextStyle(fontSize: 24,
                                   fontWeight: FontWeight.w700,
                                   color: MacroSnapTheme.emerald)),
@@ -354,7 +354,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                       Text(
                         _subscribed && _subscribedDate != null
                             ? 'Subscribed ${_subscribedDate!.substring(0, 10)}'
-                            : 'One-time payment • Unlimited access',
+                            : 'One-time payment \u2022 Unlimited access',
                         style: TextStyle(fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: MacroSnapTheme.emerald.withValues(alpha: 0.8)),
@@ -411,7 +411,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                           : const Icon(Icons.payments_rounded, size: 22),
                       label: Text(
                           _paying ? 'Opening UPI...'
-                              : 'Pay ₹49 with any UPI App',
+                              : 'Pay \u20B949 with any UPI App',
                           style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w700)),
                       style: FilledButton.styleFrom(
@@ -436,7 +436,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                               : const Color(0xFFE2E8F0))),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR scan & pay with any app',
+                        child: Text('OR pay via QR',
                             style: TextStyle(fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: isDark ? Colors.white30
@@ -463,7 +463,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                             '&pn=MacroSnap&am=49&cu=INR'
                             '&tn=MacroSnap+Pro+Subscription',
                         version: QrVersions.auto,
-                        size: 180,
+                        size: 200,
                         eyeStyle: QrEyeStyle(
                           eyeShape: QrEyeShape.square,
                           color: isDark ? Colors.white : const Color(0xFF1E293B),
@@ -474,31 +474,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Text('Scan with any UPI app to pay ₹49',
+                      Text('Scan with GPay / PhonePe / Paytm',
                           style: TextStyle(fontSize: 13,
                               color: isDark ? Colors.white54 : Colors.grey.shade600)),
                     ]),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(
-                          color: isDark ? Colors.white10
-                              : const Color(0xFFE2E8F0))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR pay manually & activate',
-                            style: TextStyle(fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white30
-                                    : const Color(0xFF94A3B8))),
-                      ),
-                      Expanded(child: Divider(
-                          color: isDark ? Colors.white10
-                              : const Color(0xFFE2E8F0))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   GestureDetector(
                     onTap: () {
                       Clipboard.setData(
@@ -540,27 +521,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('Tap to copy • Send exactly ₹49 via any UPI app',
+                  Text('Pay \u20B949 to this UPI ID from any app',
                       style: TextStyle(fontSize: 12,
                           color: isDark ? Colors.white30
                               : const Color(0xFF94A3B8))),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity, height: 48,
-                    child: OutlinedButton(
-                      onPressed: _activateSubscription,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: MacroSnapTheme.emerald,
-                        side: BorderSide(
-                            color: MacroSnapTheme.emerald.withValues(alpha: 0.4)),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: const Text("I've Paid - Activate",
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
                 ],
               ],
               if (_subscribed) ...[
@@ -573,7 +537,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18)),
                     ),
-                    child: const Text('Subscribed ✓',
+                    child: const Text('Subscribed \u2713',
                         style: TextStyle(color: Color(0xFF64748B),
                             fontSize: 16, fontWeight: FontWeight.w700)),
                   ),
