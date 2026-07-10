@@ -6,6 +6,8 @@ import '../core/theme.dart';
 import '../models/diet_profile.dart';
 import '../services/meal_store.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/app_text_field.dart';
+import '../widgets/gradient_button.dart';
 import 'subscription_screen.dart';
 
 class DietPlanScreen extends StatefulWidget {
@@ -217,64 +219,36 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _weightCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Weight (kg)', border: OutlineInputBorder(), isDense: true),
-                  style: TextStyle(color: isDark ? Colors.white : null),
-                ),
-              ),
+              Expanded(child: AppTextField(controller: _weightCtrl, label: 'Weight (kg)', keyboardType: TextInputType.number)),
               const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _heightCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Height (cm)', border: OutlineInputBorder(), isDense: true),
-                  style: TextStyle(color: isDark ? Colors.white : null),
-                ),
-              ),
+              Expanded(child: AppTextField(controller: _heightCtrl, label: 'Height (cm)', keyboardType: TextInputType.number)),
               const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _ageCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Age', border: OutlineInputBorder(), isDense: true),
-                  style: TextStyle(color: isDark ? Colors.white : null),
-                ),
-              ),
+              Expanded(child: AppTextField(controller: _ageCtrl, label: 'Age', keyboardType: TextInputType.number)),
             ],
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<Gender>(
             initialValue: _gender,
-            decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: 'Gender', filled: true, fillColor: isDark ? const Color(0xFF1E293B) : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))), contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
             items: const [DropdownMenuItem(value: Gender.male, child: Text('Male')), DropdownMenuItem(value: Gender.female, child: Text('Female'))],
             onChanged: (v) => setState(() => _gender = v!),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<Goal>(
             initialValue: _goal,
-            decoration: const InputDecoration(labelText: 'Goal', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: 'Goal', filled: true, fillColor: isDark ? const Color(0xFF1E293B) : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))), contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
             items: Goal.values.map((g) => DropdownMenuItem(value: g, child: Text(DietPlanService.goalLabel(g)))).toList(),
             onChanged: (v) => setState(() => _goal = v!),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<ActivityLevel>(
             initialValue: _activity,
-            decoration: const InputDecoration(labelText: 'Activity Level', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: 'Activity Level', filled: true, fillColor: isDark ? const Color(0xFF1E293B) : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))), contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
             items: ActivityLevel.values.map((a) => DropdownMenuItem(value: a, child: Text(DietPlanService.activityLabel(a)))).toList(),
             onChanged: (v) => setState(() => _activity = v!),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity, height: 52,
-            child: FilledButton(
-              onPressed: _calculate,
-              style: FilledButton.styleFrom(backgroundColor: MacroSnapTheme.emerald, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              child: const Text('Calculate & Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            ),
-          ),
+          GradientButton(label: 'Calculate & Save', onPressed: _calculate, height: 52),
         ],
       ),
     );
@@ -370,20 +344,13 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
                 child: Text(_aiError, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12)),
               ),
-            SizedBox(
-              width: double.infinity, height: 48,
-              child: FilledButton.icon(
-                onPressed: _generating ? null : _generateAiPlan,
-                icon: _generating
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Icon(_subscribed ? Icons.auto_awesome_rounded : Icons.lock_outline_rounded, size: 18),
-                label: Text(_generating ? 'Generating...' : _subscribed ? 'Generate AI Meal Plan' : 'Subscribe to Unlock AI Plan',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _subscribed ? MacroSnapTheme.emerald : const Color(0xFF94A3B8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+            GradientButton(
+              label: _generating ? 'Generating...' : _subscribed ? 'Generate AI Meal Plan' : 'Subscribe to Unlock AI Plan',
+              icon: _generating ? null : _subscribed ? Icons.auto_awesome_rounded : Icons.lock_outline_rounded,
+              onPressed: _generating ? null : _generateAiPlan,
+              loading: _generating,
+              height: 48,
+              disabled: !_subscribed,
             ),
           ],
         ],

@@ -6,6 +6,7 @@ import '../models/meal_record.dart';
 import '../services/gemini_service.dart';
 import '../services/meal_store.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/gradient_button.dart';
 
 class ResultScreen extends StatefulWidget {
   final String imagePath;
@@ -237,37 +238,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 24),
             if (isNoUrl)
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () => Navigator.pop(context),
-                      child: const Center(
-                        child: Text(
-                          'Go to Settings',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              GradientButton(
+                label: 'Go Back',
+                onPressed: () => Navigator.pop(context),
               ),
           ],
         ),
@@ -394,63 +367,31 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                   ),
                 ],
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
+                GradientButton(
+                  label: 'Log This Meal',
+                  onPressed: () {
+                    MealStore.instance.add(MealRecord(
+                      id: const Uuid().v4(),
+                      date: DateTime.now(),
+                      name: r.mealName,
+                      category: '',
+                      calories: r.calories,
+                      protein: r.protein,
+                      carbs: r.carbs,
+                      fats: r.fats,
+                      fiber: r.fiber,
+                      serving: r.description,
+                    ));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Meal logged!'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        duration: const Duration(seconds: 2),
                       ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () {
-                          MealStore.instance.add(MealRecord(
-                            id: const Uuid().v4(),
-                            date: DateTime.now(),
-                            name: r.mealName,
-                            category: '',
-                            calories: r.calories,
-                            protein: r.protein,
-                            carbs: r.carbs,
-                            fats: r.fats,
-                            fiber: r.fiber,
-                            serving: r.description,
-                          ));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Meal logged!'),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                        },
-                        child: const Center(
-                          child: Text(
-                            'Log This Meal',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                    );
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
                 ),
               ],
             ),

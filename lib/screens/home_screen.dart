@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/meal_store.dart';
@@ -74,6 +75,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildHeader(BuildContext context, bool isDark) {
+    final now = DateTime.now();
+    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final dayName = days[now.weekday - 1];
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: Row(
@@ -83,22 +87,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hello,',
+                'Hello, $_avatar',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Ready to track?',
-                style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: isDark ? Colors.white : const Color(0xFF1E293B),
                   letterSpacing: -0.5,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 14, color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$dayName, ${now.day}/${now.month}/${now.year}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -107,31 +117,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
                 child: Container(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(Icons.settings_rounded, color: isDark ? Colors.white38 : const Color(0xFF94A3B8), size: 22),
+                  child: Icon(Icons.settings_rounded, color: isDark ? Colors.white38 : const Color(0xFF94A3B8), size: 20),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DietPlanScreen())).then((_) {
                   final p = DietPlanService.instance.profile;
                   if (p != null) setState(() => _avatar = p.avatar);
                 }),
                 child: Container(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
                         color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
@@ -140,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       ),
                     ],
                   ),
-                  child: Center(child: Text(_avatar, style: const TextStyle(fontSize: 22))),
+                  child: Center(child: Text(_avatar, style: const TextStyle(fontSize: 20))),
                 ),
               ),
             ],
@@ -240,41 +250,59 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildMacrosSection(BuildContext context, bool isDark) {
+    final p = MealStore.instance.todayProtein;
+    final c = MealStore.instance.todayCarbs;
+    final f = MealStore.instance.todayFats;
+    final total = p + c + f;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: GlassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Macronutrients',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1E293B),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Macronutrients',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  ),
+                ),
+                if (total > 0)
+                  Text(
+                    '${(p / max(total, 1) * 100).round()}% P · ${(c / max(total, 1) * 100).round()}% C · ${(f / max(total, 1) * 100).round()}% F',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 MacroRing(
-                  progress: (MealStore.instance.todayProtein / 150).clamp(0.0, 1.0),
-                  value: MealStore.instance.todayProtein,
+                  progress: (p / 150).clamp(0.0, 1.0),
+                  value: p,
                   target: 150,
                   label: 'Protein',
                   color: MacroSnapTheme.rose,
                 ),
                 MacroRing(
-                  progress: (MealStore.instance.todayCarbs / 300).clamp(0.0, 1.0),
-                  value: MealStore.instance.todayCarbs,
+                  progress: (c / 300).clamp(0.0, 1.0),
+                  value: c,
                   target: 300,
                   label: 'Carbs',
                   color: MacroSnapTheme.amber,
                 ),
                 MacroRing(
-                  progress: (MealStore.instance.todayFats / 67).clamp(0.0, 1.0),
-                  value: MealStore.instance.todayFats,
+                  progress: (f / 67).clamp(0.0, 1.0),
+                  value: f,
                   target: 67,
                   label: 'Fats',
                   color: MacroSnapTheme.blue,
@@ -392,6 +420,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildRecentMeals(BuildContext context, bool isDark) {
     final meals = MealStore.instance.todayMeals;
+    final totalCals = meals.fold<int>(0, (s, m) => s + m.calories);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -399,28 +428,50 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Today\'s Meals',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1E293B),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Today\'s Meals',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  ),
+                ),
+                if (meals.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$totalCals kcal total',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: MacroSnapTheme.emerald),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             if (meals.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Center(
-                  child: Text(
-                    'No meals logged yet.\nSnap a photo or search food!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: isDark ? Colors.white30 : const Color(0xFF94A3B8),
-                      height: 1.5,
-                    ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.restaurant_rounded, size: 48, color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No meals logged today',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Snap a photo or search food!',
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white30 : const Color(0xFFCBD5E1)),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -462,12 +513,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ],
                       ),
                     ),
-                    Text(
-                      '${m.calories} kcal',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${m.calories} kcal',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        ),
                       ),
                     ),
                   ],

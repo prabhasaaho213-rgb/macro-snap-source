@@ -451,7 +451,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF0F172A) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                           color: isDark ? Colors.white10
@@ -466,17 +466,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                         size: 180,
                         eyeStyle: QrEyeStyle(
                           eyeShape: QrEyeShape.square,
-                          color: const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
                         ),
                         dataModuleStyle: QrDataModuleStyle(
                           dataModuleShape: QrDataModuleShape.square,
-                          color: const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text('Scan with any UPI app to pay ₹49',
                           style: TextStyle(fontSize: 13,
-                              color: Colors.grey.shade600)),
+                              color: isDark ? Colors.white54 : Colors.grey.shade600)),
                     ]),
                   ),
                   const SizedBox(height: 20),
