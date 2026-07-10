@@ -23,17 +23,23 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _googleSignIn = GoogleSignIn(
     serverClientId: '562037381-u1ht24q03sacnkkhfohqf1jvlvjubdl3.apps.googleusercontent.com',
   );
+  final _emailController = TextEditingController();
+  final _passController = TextEditingController();
   String? _verificationId;
   bool _otpSent = false;
   bool _loading = false;
   bool _verifying = false;
   bool _googleLoading = false;
+  bool _emailLoading = false;
+  bool _showEmail = false;
   int _resendTimer = 0;
   String _error = '';
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _emailController.dispose();
+    _passController.dispose();
     for (var c in _otpControllers) { c.dispose(); }
     for (var f in _otpFocusNodes) { f.dispose(); }
     super.dispose();
@@ -172,6 +178,39 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     }
   }
 
+  Future<void> _signInWithEmail() async {
+    final email = _emailController.text.trim();
+    final pass = _passController.text.trim();
+    if (email.isEmpty || pass.isEmpty) {
+      setState(() => _error = 'Enter email and password');
+      return;
+    }
+    setState(() { _emailLoading = true; _error = ''; });
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
+    } catch (_) {
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
+      } catch (e) {
+        if (mounted) setState(() { _emailLoading = false; _error = 'Failed: ${e.toString()}'; });
+        return;
+      }
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) { if (mounted) setState(() { _emailLoading = false; _error = 'Sign in failed'; }); return; }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('phone', email);
+    await prefs.setString('email', email);
+    await prefs.setString('name', email.split('@').first);
+    if (mounted) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.pop(context, email);
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      }
+    }
+  }
+
   Future<void> _continueAsGuest() async {
     final guestId = 'guest_${Random().nextInt(999999)}';
     final prefs = await SharedPreferences.getInstance();
@@ -187,6 +226,178 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   void _onOtpChange(int index, String val) {
     if (val.isNotEmpty && index < 5) _otpFocusNodes[index + 1].requestFocus();
+  }
+
+  Widget _buildAuthSection(bool isDark) {
+    if (_showEmail) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: TextStyle(fontSize: 16, color: isDark ? Colors.white : const Color(0xFF1E293B)),
+            decoration: InputDecoration(
+              hintText: 'Email',
+              hintStyle: TextStyle(color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MacroSnapTheme.emerald, width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _passController,
+            obscureText: true,
+            style: TextStyle(fontSize: 16, color: isDark ? Colors.white : const Color(0xFF1E293B)),
+            decoration: InputDecoration(
+              hintText: 'Password',
+              hintStyle: TextStyle(color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MacroSnapTheme.emerald, width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, height: 48,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: const LinearGradient(colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight]),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _emailLoading ? null : _signInWithEmail,
+                  child: Center(
+                    child: _emailLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Sign in with Email',
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => setState(() { _showEmail = false; _error = ''; }),
+            child: Text('Use Phone instead',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+          ),
+        ],
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton(
+          onPressed: () => setState(() { _showEmail = true; _error = ''; }),
+          child: Text('Sign in with Email instead',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: MacroSnapTheme.emerald)),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: _continueAsGuest,
+          child: Text('Continue as Guest',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text('or', style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+            ),
+            Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (!_otpSent)
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            maxLength: 15,
+            style: TextStyle(fontSize: 16, color: isDark ? Colors.white : const Color(0xFF1E293B)),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: 'Phone Number',
+              hintStyle: TextStyle(color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MacroSnapTheme.emerald, width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        if (_otpSent) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(6, (i) => SizedBox(
+              width: 48, height: 56,
+              child: TextField(
+                controller: _otpControllers[i],
+                focusNode: _otpFocusNodes[i],
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 1,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                decoration: InputDecoration(
+                  counterText: '',
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MacroSnapTheme.emerald, width: 1.5)),
+                ),
+                onChanged: (v) => _onOtpChange(i, v),
+              ),
+            )),
+          ),
+          const SizedBox(height: 18),
+          if (_resendTimer > 0)
+            Text('Resend in ${_resendTimer}s', style: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8), fontSize: 12))
+          else
+            InkWell(
+              onTap: _sendOtp,
+              child: Text('Resend OTP', style: TextStyle(color: MacroSnapTheme.emerald, fontSize: 13, fontWeight: FontWeight.w600)),
+            ),
+        ],
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity, height: 48,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight]),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _loading || _verifying ? null : (_otpSent ? _verifyOtp : _sendOtp),
+                child: Center(
+                  child: _loading || _verifying
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(_otpSent ? 'Verify OTP' : 'Send OTP',
+                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -253,97 +464,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _continueAsGuest,
-                    child: Text('Continue as Guest',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('or', style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
-                      ),
-                      Expanded(child: Divider(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (!_otpSent)
-                    TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      maxLength: 15,
-                      style: TextStyle(fontSize: 16, color: isDark ? Colors.white : const Color(0xFF1E293B)),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        hintText: 'Phone Number',
-                        hintStyle: TextStyle(color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MacroSnapTheme.emerald, width: 1.5)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                    ),
-                  if (_otpSent) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(6, (i) => SizedBox(
-                        width: 48, height: 56,
-                        child: TextField(
-                          controller: _otpControllers[i],
-                          focusNode: _otpFocusNodes[i],
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          maxLength: 1,
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                          decoration: InputDecoration(
-                            counterText: '',
-                            filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MacroSnapTheme.emerald, width: 1.5)),
-                          ),
-                          onChanged: (v) => _onOtpChange(i, v),
-                        ),
-                      )),
-                    ),
-                    const SizedBox(height: 18),
-                    if (_resendTimer > 0)
-                      Text('Resend in ${_resendTimer}s', style: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8), fontSize: 12))
-                    else
-                      InkWell(
-                        onTap: _sendOtp,
-                        child: Text('Resend OTP', style: TextStyle(color: MacroSnapTheme.emerald, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ),
-                  ],
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity, height: 48,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: const LinearGradient(colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight]),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: _loading || _verifying ? null : (_otpSent ? _verifyOtp : _sendOtp),
-                          child: Center(
-                            child: _loading || _verifying
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : Text(_otpSent ? 'Verify OTP' : 'Send OTP',
-                                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  _buildAuthSection(isDark),
                 ],
               ),
             ),
