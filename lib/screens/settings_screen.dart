@@ -68,6 +68,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _editName() async {
+    final ctrl = TextEditingController(text: _name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 15,
+          decoration: const InputDecoration(
+            hintText: 'Your name (max 15 chars)',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (newName != null && newName.isNotEmpty && newName != _name) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('name', newName);
+      setState(() => _name = newName);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -101,10 +137,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700))),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(_name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-                    if (_email.isNotEmpty) Text(_email, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
-                  ])),
+                  Expanded(child: GestureDetector(
+                    onTap: _editName,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(_name, overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.edit_rounded, color: Colors.white.withValues(alpha: 0.5), size: 16),
+                        ],
+                      ),
+                      if (_email.isNotEmpty) Text(_email, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                    ]),
+                  )),
                 ]),
                 const SizedBox(height: 16),
                 Container(
