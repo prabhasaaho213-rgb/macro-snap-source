@@ -21,7 +21,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _otpControllers = List.generate(6, (_) => TextEditingController());
   final _otpFocusNodes = List.generate(6, (_) => FocusNode());
   final _googleSignIn = GoogleSignIn(
-    serverClientId: '562037381-u1ht24q03sacnkkhfohqf1jvlvjubdl3.apps.googleusercontent.com',
+    serverClientId: '562037381-fe32lcko640l5ro6br2aqoaq6ld2feb7.apps.googleusercontent.com',
   );
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
