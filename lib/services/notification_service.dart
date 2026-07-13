@@ -173,8 +173,38 @@ class NotificationService {
     await cancelAll();
     await scheduleDailyReminder();
     await scheduleWeeklySummary();
+    await scheduleStreakReminder();
     await scheduleExpiryReminder(subscribedDate);
     await scheduleExpired(subscribedDate);
+  }
+
+  Future<void> scheduleStreakReminder() async {
+    final now = DateTime.now();
+    var reminderTime = DateTime(now.year, now.month, now.day, 19, 30);
+    if (reminderTime.isBefore(now)) {
+      reminderTime = reminderTime.add(const Duration(days: 1));
+    }
+
+    await _plugin.zonedSchedule(
+      6,
+      "Don't break your chain! 🔥",
+      'You haven\'t logged a meal today. Snap a photo to keep your streak alive.',
+      tz.TZDateTime.from(reminderTime, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'macro_snap_reminder',
+          'Meal Reminders',
+          channelDescription: 'Daily reminders to log meals',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
   Future<void> cancelAll() async {

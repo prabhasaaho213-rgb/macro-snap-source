@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NutritionResult {
   final String mealName;
@@ -89,11 +90,23 @@ class GeminiService {
         throw Exception('Image file not found at: $imagePath');
       }
 
+      final prefs = await SharedPreferences.getInstance();
+      final phone = prefs.getString('phone') ?? '';
+
       final request = http.MultipartRequest('POST', Uri.parse('$_serverUrl/analyze'));
       request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+      request.fields['phone'] = phone;
 
       final streamed = await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 403) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['error'] == 'scan_limit_reached') {
+          throw Exception('Scan limit reached. Subscribe for unlimited scans.');
+        }
+        throw Exception(body['error'] as String? ?? 'Server error (${response.statusCode})');
+      }
 
       if (response.statusCode != 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;

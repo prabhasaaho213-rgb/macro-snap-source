@@ -300,9 +300,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               ),
               const SizedBox(height: 24),
               Text(
-                _subscribed ? "You're a Pro!" : 'Unlock Full Access',
+                _subscribed ? "You're a Pro!" : 'Never manually calculate macros again',
                 style: TextStyle(
-                  fontSize: 28, fontWeight: FontWeight.w800,
+                  fontSize: 26, fontWeight: FontWeight.w800,
                   color: isDark ? Colors.white : const Color(0xFF1E293B),
                   letterSpacing: -0.5,
                 ),
@@ -311,23 +311,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               Text(
                 _subscribed
                     ? 'Enjoy all features. ${_daysRemaining()}'
-                    : 'Everything you need to hit your goals',
+                    : 'Snap, log, track your week automatically',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w400,
                     color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
               ),
               const SizedBox(height: 32),
-              _buildFeatureRow(Icons.photo_camera_rounded, 'AI Photo Analysis',
-                  'Snap & get instant macros from any meal', isDark),
-              _buildFeatureRow(Icons.restaurant_rounded, 'Complete Food Database',
-                  '130+ Indian dishes with accurate nutrition', isDark),
-              _buildFeatureRow(Icons.bar_chart_rounded, 'Daily Macro Tracking',
-                  'Protein, carbs, fats & calorie goals', isDark),
-              _buildFeatureRow(Icons.history_rounded, 'Meal History',
-                  'Review everything you ate', isDark),
+              _buildFeatureRow(Icons.local_fire_department_rounded, 'Streak Tracking',
+                  'Stay consistent with daily logging streaks', isDark),
+              _buildFeatureRow(Icons.insights_rounded, 'Weekly Auto-Insights',
+                  'See your protein gaps and trends without manual tracking', isDark),
+              _buildFeatureRow(Icons.history_rounded, 'Complete Meal History',
+                  'Review everything you ate, searchable by date', isDark),
               _buildFeatureRow(Icons.cloud_rounded, 'Cloud Backup',
                   'Your data stays safe across devices', isDark),
+              _buildFeatureRow(Icons.photo_camera_rounded, 'Unlimited AI Scans',
+                  'Snap any meal for instant macros — no limits', isDark),
               const SizedBox(height: 32),
               GlassCard(
                 child: Padding(
@@ -343,7 +343,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                                   fontWeight: FontWeight.w700,
                                   color: MacroSnapTheme.emerald)),
                           const SizedBox(width: 2),
-                          Text('49',
+                          Text('29',
                               style: TextStyle(fontSize: 56,
                                   fontWeight: FontWeight.w800,
                                   color: isDark ? Colors.white

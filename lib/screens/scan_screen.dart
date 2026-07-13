@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/theme.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/gradient_button.dart';
+import '../services/scan_gate.dart';
 import 'result_screen.dart';
+import 'subscription_screen.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -15,6 +18,8 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
 
+  int _scansLeft = 3;
+
   @override
   void initState() {
     super.initState();
@@ -22,6 +27,12 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    _loadScans();
+  }
+
+  Future<void> _loadScans() async {
+    final remaining = await ScanGate.getScansRemaining();
+    if (mounted) setState(() => _scansLeft = remaining);
   }
 
   @override
@@ -31,9 +42,14 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    if (!await ScanGate.canScan()) {
+      if (mounted) _showLimitDialog();
+      return;
+    }
     final picker = ImagePicker();
     final image = await picker.pickImage(source: source, maxWidth: 512, imageQuality: 70);
     if (image != null && mounted) {
+      await ScanGate.incrementScan();
       final bytes = await image.readAsBytes();
       final tempDir = Directory.systemTemp;
       final tempFile = File('${tempDir.path}/food_${DateTime.now().millisecondsSinceEpoch}.jpg');
@@ -49,9 +65,59 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
     }
   }
 
+  void _showLimitDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: MacroSnapTheme.amber.withValues(alpha: 0.1),
+              ),
+              child: const Icon(Icons.flash_on_rounded,
+                  color: MacroSnapTheme.amber, size: 32),
+            ),
+            const SizedBox(height: 16),
+            const Text('Free scans used up',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text('You get 3 free AI scans per month.\nGo Pro for unlimited scans.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14,
+                    color: Colors.grey.shade500, height: 1.4)),
+            const SizedBox(height: 24),
+            GradientButton(
+              label: 'Go Pro - \u20B929/mo',
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+              },
+              height: 48,
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('Maybe later',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canUse = _scansLeft > 0;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -117,6 +183,24 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                   fontWeight: FontWeight.w400,
                   color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
                   height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: (canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _scansLeft >= 99
+                      ? 'Unlimited scans'
+                      : '$_scansLeft scan${_scansLeft == 1 ? '' : 's'} remaining this month',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose,
+                  ),
                 ),
               ),
               const Spacer(),

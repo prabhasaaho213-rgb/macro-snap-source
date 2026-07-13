@@ -2,7 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/meal_store.dart';
+import '../models/meal_record.dart';
 import '../services/update_checker.dart';
+import '../services/scan_gate.dart';
+import '../services/streak_service.dart';
 import '../models/diet_profile.dart';
 import 'diet_plan_screen.dart';
 import '../widgets/glass_card.dart';
@@ -12,6 +15,7 @@ import 'add_meal_screen.dart';
 import 'scan_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
+import 'subscription_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +28,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   String _avatar = '😎';
+  int _streak = 0;
+  int _bestStreak = 0;
+  int _scansLeft = 3;
+  List<_DaySummary> _weekSummary = [];
 
   @override
   void initState() {
@@ -33,14 +41,57 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    MealStore.instance.load().then((_) {
-      if (mounted) _animController.forward();
-    });
-    DietPlanService.instance.load().then((_) {
-      final p = DietPlanService.instance.profile;
-      if (p != null && mounted) setState(() => _avatar = p.avatar);
-    });
+    _loadAll();
     UpdateChecker.checkAndPrompt(context);
+  }
+
+  Future<void> _loadAll() async {
+    await MealStore.instance.load();
+    await DietPlanService.instance.load();
+    final p = DietPlanService.instance.profile;
+    await StreakService.checkAndUpdate();
+    final streak = await StreakService.getCurrent();
+    final best = await StreakService.getBest();
+    final scans = await ScanGate.getScansRemaining();
+    _computeWeekSummary();
+    if (mounted) {
+      setState(() {
+        _avatar = p?.avatar ?? '😎';
+        _streak = streak;
+        _bestStreak = best;
+        _scansLeft = scans;
+      });
+      _animController.forward();
+    }
+  }
+
+  void _computeWeekSummary() {
+    final meals = MealStore.instance.allMeals;
+    if (meals.isEmpty) { _weekSummary = []; return; }
+
+    final now = DateTime.now();
+    final dayMeals = <String, List<MealRecord>>{};
+    for (final m in meals) {
+      final day = '${m.date.year}-${m.date.month}-${m.date.day}';
+      dayMeals.putIfAbsent(day, () => <MealRecord>[]).add(m);
+    }
+
+    _weekSummary = [];
+    for (int i = 0; i < 7; i++) {
+      final d = DateTime(now.year, now.month, now.day - (6 - i));
+      final key = '${d.year}-${d.month}-${d.day}';
+      final dayList = dayMeals[key] ?? [];
+      final protein = dayList.fold(0.0, (s, m) => s + m.protein);
+      final calories = dayList.fold(0, (s, m) => s + m.calories);
+      final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      _weekSummary.add(_DaySummary(
+        label: days[d.weekday - 1],
+        date: d,
+        protein: protein,
+        calories: calories,
+        mealCount: dayList.length,
+      ));
+    }
   }
 
   @override
@@ -49,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  void _refresh() => setState(() {});
+  void _refresh() => _loadAll();
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +113,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context, isDark)),
+              SliverToBoxAdapter(child: _buildStreakRow(isDark)),
+              if (_weekSummary.isNotEmpty)
+                SliverToBoxAdapter(child: _buildWeekInsights(isDark)),
               SliverToBoxAdapter(child: _buildCalorieCard(context, isDark)),
               SliverToBoxAdapter(child: _buildMacrosSection(context, isDark)),
               SliverToBoxAdapter(child: _buildQuickActions(context, isDark)),
@@ -115,6 +169,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Row(
             children: [
               GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: (_scansLeft > 0 ? MacroSnapTheme.emerald : MacroSnapTheme.rose).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.flash_on_rounded, size: 14,
+                          color: _scansLeft > 0 ? MacroSnapTheme.emerald : MacroSnapTheme.rose),
+                      const SizedBox(width: 4),
+                      Text(_scansLeft >= 99 ? 'Pro' : '$_scansLeft',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                              color: _scansLeft > 0 ? MacroSnapTheme.emerald : MacroSnapTheme.rose)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
                 child: Container(
                   width: 44,
@@ -160,9 +236,125 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Widget _buildStreakRow(bool isDark) {
+    if (_streak <= 0) return const SizedBox.shrink();
+    final isBest = StreakService.isLongestStreak(_streak, _bestStreak);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.local_fire_department_rounded,
+                color: MacroSnapTheme.amber, size: 20),
+            const SizedBox(width: 8),
+            Text('$_streak day${_streak == 1 ? '' : 's'} streak',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B))),
+            if (isBest)
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: MacroSnapTheme.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text('Best!', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                    color: MacroSnapTheme.amber)),
+              ),
+            const Spacer(),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(min(_streak, 7), (i) =>
+                Container(
+                  width: 8, height: 8,
+                  margin: const EdgeInsets.only(right: 3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: MacroSnapTheme.emerald.withValues(alpha: 0.6 + (i / _streak * 0.4)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeekInsights(bool isDark) {
+    final profile = DietPlanService.instance.profile;
+    if (_weekSummary.isEmpty) return const SizedBox.shrink();
+
+    final daysBelowProtein = _weekSummary.where((d) =>
+        d.mealCount > 0 && profile != null && d.protein < profile.targetProtein * 0.8).length;
+    final daysBelowCals = _weekSummary.where((d) =>
+        d.mealCount > 0 && profile != null && d.calories < profile.targetCalories * 0.85).length;
+    final daysLogged = _weekSummary.where((d) => d.mealCount > 0).length;
+
+    List<String> insights = [];
+    if (daysLogged == 0) return const SizedBox.shrink();
+    if (daysBelowProtein >= 4 && profile != null) {
+      insights.add('Protein was 20%+ below target on $daysBelowProtein of the last 7 days');
+    }
+    if (daysBelowCals >= 4 && profile != null) {
+      insights.add('Calories were below target on $daysBelowCals of the last 7 days');
+    }
+    if (daysBelowProtein == 0 && daysLogged >= 5) {
+      insights.add('Great consistency — hitting protein targets all week!');
+    }
+    if (daysLogged >= 6) {
+      insights.add('Logged meals $daysLogged/7 days this week. Keep it up!');
+    }
+    if (insights.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.insights_rounded, color: MacroSnapTheme.emerald, size: 20),
+                const SizedBox(width: 8),
+                Text('Weekly Insights',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...insights.map((insight) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 5),
+                    width: 6, height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: MacroSnapTheme.emerald.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(insight, style: TextStyle(fontSize: 13,
+                        color: isDark ? Colors.white60 : const Color(0xFF475569),
+                        height: 1.4)),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCalorieCard(BuildContext context, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: GlassCard(
         height: 180,
         padding: EdgeInsets.zero,
@@ -536,6 +728,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
+}
+
+class _DaySummary {
+  final String label;
+  final DateTime date;
+  final double protein;
+  final int calories;
+  final int mealCount;
+  _DaySummary({required this.label, required this.date, required this.protein, required this.calories, required this.mealCount});
 }
 
 class _ActionButton extends StatelessWidget {
