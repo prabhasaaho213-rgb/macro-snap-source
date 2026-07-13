@@ -25,6 +25,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   String? _error;
   NutritionResult? _result;
   int _grams = 100;
+  bool _showPerDish = false;
 
   @override
   void initState() {
@@ -74,7 +75,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             Icon(Icons.scale_rounded, size: 18,
                 color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
             const SizedBox(width: 10),
-            Text('Serving Size',
+            Text('Total Serving',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white60 : const Color(0xFF64748B))),
             const Spacer(),
@@ -176,7 +177,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Our AI is identifying ingredients\nand calculating nutrition',
+              'Our AI is identifying each dish\nand calculating nutrition',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -252,7 +253,8 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   }
 
   Widget _buildResults(bool isDark) {
-    final r = _result!.withGrams(_grams);
+    final r = _result!;
+    final hasMultiDish = r.dishes.length > 1;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
@@ -272,11 +274,33 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           ),
           const SizedBox(height: 12),
           _buildGramAdjuster(isDark),
+          if (hasMultiDish) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => setState(() => _showPerDish = !_showPerDish),
+                  icon: Icon(
+                    _showPerDish ? Icons.view_agenda_rounded : Icons.dashboard_rounded,
+                    size: 16,
+                    color: MacroSnapTheme.emerald,
+                  ),
+                  label: Text(
+                    _showPerDish ? 'Show Totals' : 'Show per Dish',
+                    style: const TextStyle(fontSize: 13, color: MacroSnapTheme.emerald),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           SlideTransition(
             position: _slideAnim,
             child: Column(
               children: [
+                if (_showPerDish && hasMultiDish)
+                  ...r.dishes.map((d) => _buildDishCard(isDark, d, r.grams)),
                 GlassCard(
                   child: Column(
                     children: [
@@ -349,15 +373,16 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'AI Confidence',
+                                  'AI Breakdown (${r.dishes.length} item${r.dishes.length > 1 ? 's' : ''})',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: isDark ? Colors.white : const Color(0xFF1E293B),
                                   ),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  '${(r.confidence * 100).round()}% · ${r.description}',
+                                  '${(r.confidence * 100).round()}% confidence · ${r.description}',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w400,
@@ -376,10 +401,13 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                 GradientButton(
                   label: 'Log This Meal',
                   onPressed: () {
+                    final combinedName = hasMultiDish
+                        ? r.dishes.map((d) => d.name).join(', ')
+                        : r.dishes.first.name;
                     MealStore.instance.add(MealRecord(
                       id: const Uuid().v4(),
                       date: DateTime.now(),
-                      name: r.mealName,
+                      name: combinedName,
                       category: '',
                       calories: r.calories,
                       protein: r.protein,
@@ -390,7 +418,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                     ));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Meal logged!'),
+                        content: Text(hasMultiDish
+                            ? '${r.dishes.length} dishes logged!'
+                            : 'Meal logged!'),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         duration: const Duration(seconds: 2),
@@ -407,6 +437,84 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     );
   }
 
+  Widget _buildDishCard(bool isDark, DishItem dish, int totalGrams) {
+    final ratio = totalGrams / 100;
+    final isBulk = dish.suitableFor == 'bulk';
+    final isDiet = dish.suitableFor == 'diet';
+    final badgeColor = isBulk ? MacroSnapTheme.blue : isDiet ? MacroSnapTheme.rose : MacroSnapTheme.emerald;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      dish.name,
+                      style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700, color: MacroSnapTheme.emerald,
+                      ),
+                    ),
+                  ),
+                  if (dish.portionDescription.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(dish.portionDescription,
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                  ],
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${(dish.caloriesPer100g * ratio).round()} kcal',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: badgeColor),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildDishMacro('P', (dish.proteinPer100g * ratio), MacroSnapTheme.rose),
+                  _buildDishMacro('C', (dish.carbsPer100g * ratio), MacroSnapTheme.amber),
+                  _buildDishMacro('F', (dish.fatsPer100g * ratio), MacroSnapTheme.blue),
+                  _buildDishMacro('Fib', (dish.fiberPer100g * ratio), MacroSnapTheme.emerald),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDishMacro(String label, double value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value > 0 ? '${value.toStringAsFixed(1)}g' : '—',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
+        ),
+        Text(label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
+                color: const Color(0xFF94A3B8))),
+      ],
+    );
+  }
+
   Widget _buildMealHeader(bool isDark, NutritionResult r) {
     return Row(
       children: [
@@ -417,7 +525,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            r.mealName,
+            r.dishes.length == 1 ? r.dishes.first.name : '${r.dishes.length} Items',
             style: const TextStyle(
               color: MacroSnapTheme.emerald,
               fontSize: 13,

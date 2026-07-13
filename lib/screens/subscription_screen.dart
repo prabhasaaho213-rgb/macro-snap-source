@@ -10,6 +10,7 @@ import '../widgets/app_text_field.dart';
 import '../widgets/glass_card.dart';
 import 'phone_login_screen.dart';
 import '../services/notification_service.dart';
+import 'referral_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -601,6 +602,52 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   style: TextStyle(fontSize: 13,
                       color: isDark ? Colors.white30
                           : const Color(0xFFCBD5E1))),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ReferralScreen())),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: MacroSnapTheme.emerald.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: MacroSnapTheme.emerald.withValues(alpha: 0.15)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(
+                          color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.emoji_events_rounded,
+                            color: MacroSnapTheme.emerald, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Refer a Friend',
+                                style: TextStyle(fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white
+                                        : const Color(0xFF1E293B))),
+                            Text('Both get Pro free for a month',
+                                style: TextStyle(fontSize: 13,
+                                    color: isDark ? Colors.white38
+                                        : const Color(0xFF94A3B8))),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded,
+                          color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 40),
             ],
           ),

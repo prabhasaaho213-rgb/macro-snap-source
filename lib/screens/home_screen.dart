@@ -16,6 +16,9 @@ import 'scan_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'subscription_screen.dart';
+import 'recipe_list_screen.dart';
+import 'barcode_scan_screen.dart';
+import '../services/share_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -321,6 +324,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 Text('Weekly Insights',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () async {
+                    try {
+                      await ShareService.shareWeekSummary();
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(e.toString()),
+                              behavior: SnackBarBehavior.floating),
+                        );
+                      }
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.share_rounded, size: 18, color: MacroSnapTheme.emerald),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -594,14 +620,35 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 const SizedBox(width: 12),
                 Expanded(
                   child: _ActionButton(
-                    icon: Icons.history_rounded,
-                    label: 'History',
+                    icon: Icons.menu_book_rounded,
+                    label: 'Recipes',
+                    gradient: const LinearGradient(
+                      colors: [MacroSnapTheme.blue, Color(0xFF60A5FA)],
+                    ),
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const RecipeListScreen()));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Scan Barcode',
                     gradient: const LinearGradient(
                       colors: [MacroSnapTheme.amber, Color(0xFFFBBF24)],
                     ),
-                    onTap: () {},
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const BarcodeScanScreen()));
+                    },
                   ),
                 ),
+                const SizedBox(width: 12),
+                const Expanded(child: SizedBox.shrink()),
               ],
             ),
           ],
