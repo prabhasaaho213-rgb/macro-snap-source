@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:upi_intent/upi_intent.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/theme.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/app_text_field.dart';
 import '../widgets/glass_card.dart';
 import 'phone_login_screen.dart';
 import '../services/notification_service.dart';
@@ -21,8 +22,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     with SingleTickerProviderStateMixin {
   String? _phone;
   bool _subscribed = false;
-  bool _paying = false;
+  bool _submitting = false;
+  bool _checking = true;
   String? _subscribedDate;
+  String? _paymentStatus;
+  final _txnController = TextEditingController();
   final String _serverUrl = 'https://macro-snap-backend-production.up.railway.app';
   AnimationController? _animController;
   Animation<double>? _checkAnim;
@@ -30,52 +34,137 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   @override
   void initState() {
     super.initState();
-    _loadSubscription();
+    _loadState();
   }
 
   @override
   void dispose() {
     _animController?.dispose();
+    _txnController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadSubscription() async {
+  Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
     final phone = prefs.getString('phone');
     final subscribed = prefs.getBool('subscribed') ?? false;
     final date = prefs.getString('subscribed_at');
     if (mounted) {
       setState(() {
-        _subscribed = subscribed;
         _phone = phone;
+        _subscribed = subscribed;
         _subscribedDate = date;
       });
     }
+    if (phone != null && !subscribed) await _checkPaymentStatus(phone);
+    if (mounted) setState(() => _checking = false);
   }
 
-  Future<void> _activateSubscription() async {
+  Future<void> _checkPaymentStatus(String phone) async {
+    try {
+      final res = await http.get(Uri.parse('$_serverUrl/payment/status/$phone'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (mounted) {
+          setState(() {
+            _paymentStatus = data['payment']?['status'];
+            if (data['subscribed'] == true && !_subscribed) {
+              _activateFromServer();
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _activateFromServer() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now().toIso8601String();
     await prefs.setString('subscribed_at', now);
     await prefs.setBool('subscribed', true);
-    if (_phone != null) {
-      try {
-        await http.post(
-          Uri.parse('$_serverUrl/subscribe'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'phone': _phone}),
-        );
-      } catch (_) {}
-    }
-    final notif = NotificationService();
-    await notif.showSubscribed();
-    await notif.scheduleAllForSubscriber(now);
     if (mounted) {
       setState(() {
         _subscribed = true;
         _subscribedDate = now;
       });
+      _showConfirmation();
     }
+  }
+
+  Future<void> _submitPayment() async {
+    final txn = _txnController.text.trim();
+    if (txn.isEmpty || _phone == null) return;
+    setState(() { _submitting = true; _paymentStatus = null; });
+    try {
+      final res = await http.post(
+        Uri.parse('$_serverUrl/payment/request'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'phone': _phone, 'transaction_ref': txn}),
+      );
+      if (res.statusCode == 200) {
+        if (mounted) {
+          setState(() => _paymentStatus = 'pending');
+          _txnController.clear();
+          _showSubmitted();
+        }
+      } else {
+        if (mounted) _showError('Failed to submit. Try again.');
+      }
+    } catch (_) {
+      if (mounted) _showError('Network error. Try again.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _showSubmitted() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 72, height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                ),
+                child: Icon(Icons.hourglass_top_rounded,
+                    color: MacroSnapTheme.emerald, size: 40),
+              ),
+              const SizedBox(height: 20),
+              const Text('Payment Submitted',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              Text('Your payment is being verified.\nYou\'ll get access once confirmed.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity, height: 48,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: MacroSnapTheme.emerald,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Got it',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showConfirmation() {
@@ -117,17 +206,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                 const Text('Welcome to Pro!',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
-                Text('You now have full access to all features',
+                Text('Your subscription is now active',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14,
-                        color: Colors.grey.shade500)),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity, height: 48,
                   child: FilledButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                    },
+                    onPressed: () => Navigator.of(ctx).pop(),
                     style: FilledButton.styleFrom(
                       backgroundColor: MacroSnapTheme.emerald,
                       shape: RoundedRectangleBorder(
@@ -145,97 +231,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     );
   }
 
-  Future<void> _payWithUpi() async {
-    setState(() => _paying = true);
-    try {
-      final response = await UpiIntent.pay(
-        context: context,
-        payment: UpiPayment(
-          payeeVpa: '7569086885@yespop',
-          payeeName: 'MacroSnap',
-          amount: 49.00,
-          transactionNote: 'MacroSnap Pro Subscription',
-          transactionRefId: 'MS${DateTime.now().millisecondsSinceEpoch}',
-        ),
-      );
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: MacroSnapTheme.rose,
+    ));
+  }
 
-      if (response == null) return;
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => PopScope(
-            canPop: false,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 48),
-                margin: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 40, offset: const Offset(0, 10))
-                  ],
-                ),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  SizedBox(
-                    width: 48, height: 48,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 3, color: MacroSnapTheme.emerald),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Verifying payment...',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  Text('Please wait',
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
-                ]),
-              ),
-            ),
-          ),
-        );
-      }
-
-      await Future.delayed(const Duration(milliseconds: 600));
-
-      if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-
-      if (response.isSuccess) {
-        await _activateSubscription();
-        if (mounted) _showConfirmation();
-      } else {
-        final msg = response.status == UpiTransactionStatus.failure
-            ? 'Payment failed. Check UPI PIN and try again.'
-            : 'Payment ${response.status.name}. Try again or pay via QR below.';
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(msg),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: _payWithUpi,
-            ),
-          ));
-        }
-      }
-    } on UpiException catch (e) {
-      final msg = e.message.contains('no UPI apps')
-          ? 'No UPI apps found. Use QR code below to pay.'
-          : e.message;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(msg),
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _paying = false);
+  void _openUpiApp() async {
+    final uri = Uri.parse('upi://pay?pa=7569086885@yespop&pn=MacroSnap&am=49&cu=INR&tn=MacroSnap+Pro+Subscription');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      _showError('No UPI app found. Copy the UPI ID and pay manually.');
     }
   }
 
@@ -378,153 +388,181 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   ],
                 ),
               const SizedBox(height: 24),
-              if (!_subscribed) ...[
-                SizedBox(
-                  width: double.infinity, height: 56,
-                  child: FilledButton(
-                    onPressed: _phone == null ? _startLogin : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _phone == null
-                          ? MacroSnapTheme.emerald
-                          : const Color(0xFFCBD5E1),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
-                    ),
-                    child: Text(
-                      _phone == null ? 'Login to Subscribe'
-                          : 'Logged in as $_phone',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                  ),
+              if (!_subscribed && _checking)
+                const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                if (_phone != null) ...[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity, height: 56,
-                    child: FilledButton.icon(
-                      onPressed: _paying ? null : _payWithUpi,
-                      icon: _paying
-                          ? const SizedBox(width: 22, height: 22,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.payments_rounded, size: 22),
-                      label: Text(
-                          _paying ? 'Opening UPI...'
-                              : 'Pay \u20B949 with any UPI App',
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: MacroSnapTheme.emerald,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18)),
-                      ),
-                    ),
+              if (!_subscribed && !_checking) ...[
+                if (_phone == null) ...[
+                  GradientButton(
+                    label: 'Login to Subscribe',
+                    onPressed: _startLogin,
+                    height: 56,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Opens GPay / PhonePe / Paytm / BHIM',
-                    style: TextStyle(fontSize: 12,
-                        color: isDark ? Colors.white30
-                            : const Color(0xFF94A3B8)),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(
-                          color: isDark ? Colors.white10
-                              : const Color(0xFFE2E8F0))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR pay via QR',
-                            style: TextStyle(fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white30
-                                    : const Color(0xFF94A3B8))),
-                      ),
-                      Expanded(child: Divider(
-                          color: isDark ? Colors.white10
-                              : const Color(0xFFE2E8F0))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                ] else ...[
+                  // UPI payment section
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                      color: isDark ? MacroSnapTheme.cardDark : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: isDark ? Colors.white10
-                              : const Color(0xFFE2E8F0)),
+                          color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
                     ),
                     child: Column(children: [
-                      QrImageView(
-                        data: 'upi://pay?pa=7569086885@yespop'
-                            '&pn=MacroSnap&am=49&cu=INR'
-                            '&tn=MacroSnap+Pro+Subscription',
-                        version: QrVersions.auto,
-                        size: 200,
-                        eyeStyle: QrEyeStyle(
-                          eyeShape: QrEyeShape.square,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
-                        ),
-                        dataModuleStyle: QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.square,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.payments_rounded,
+                                color: MacroSnapTheme.emerald, size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Pay via UPI',
+                                    style: TextStyle(fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? Colors.white
+                                            : const Color(0xFF1E293B))),
+                                Text('Send \u20B949 to the ID below',
+                                    style: TextStyle(fontSize: 13,
+                                        color: isDark ? Colors.white38
+                                            : const Color(0xFF94A3B8))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(
+                              const ClipboardData(text: '7569086885@yespop'));
+                          _showError('UPI ID copied!');
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: MacroSnapTheme.emerald.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: MacroSnapTheme.emerald.withValues(alpha: 0.2)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.account_balance_rounded,
+                                  color: MacroSnapTheme.emerald, size: 18),
+                              const SizedBox(width: 8),
+                              Text('7569086885@yespop',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white
+                                        : const Color(0xFF1E293B),
+                                    letterSpacing: 0.5,
+                                  )),
+                              const SizedBox(width: 8),
+                              Icon(Icons.copy_rounded,
+                                  color: MacroSnapTheme.emerald, size: 18),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text('Scan with GPay / PhonePe / Paytm',
-                          style: TextStyle(fontSize: 13,
-                              color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                      const SizedBox(height: 8),
+                      Text('Tap to copy  |  \u20B949 one-time',
+                          style: TextStyle(fontSize: 12,
+                              color: isDark ? Colors.white30
+                                  : const Color(0xFF94A3B8))),
+                      const SizedBox(height: 16),
+                      GradientButton(
+                        label: 'Open UPI App',
+                        icon: Icons.open_in_new_rounded,
+                        onPressed: _openUpiApp,
+                        height: 52,
+                      ),
                     ]),
                   ),
                   const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(
-                          const ClipboardData(text: '7569086885@yespop'));
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text('UPI ID copied!'),
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 2),
-                      ));
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : MacroSnapTheme.emerald)
-                            .withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: MacroSnapTheme.emerald.withValues(alpha: 0.2)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.account_balance_rounded,
-                              color: MacroSnapTheme.emerald, size: 18),
-                          const SizedBox(width: 8),
-                          Text('7569086885@yespop',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white
-                                    : const Color(0xFF1E293B),
-                                letterSpacing: 0.5,
-                              )),
-                          const SizedBox(width: 8),
-                          Icon(Icons.copy_rounded,
-                              color: MacroSnapTheme.emerald, size: 18),
-                        ],
-                      ),
+                  // Transaction reference input
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? MacroSnapTheme.cardDark : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.verified_outlined,
+                                color: MacroSnapTheme.emerald, size: 20),
+                            const SizedBox(width: 8),
+                            Text('Verify Payment',
+                                style: TextStyle(fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white
+                                        : const Color(0xFF1E293B))),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text('After paying, enter the transaction reference (UTR) here',
+                            style: TextStyle(fontSize: 13,
+                                color: isDark ? Colors.white38
+                                    : const Color(0xFF94A3B8))),
+                        const SizedBox(height: 14),
+                        AppTextField(
+                          controller: _txnController,
+                          label: 'Transaction Reference',
+                          hint: 'e.g. HDFC123456789',
+                          prefixIcon: Icon(Icons.tag_rounded, size: 20,
+                              color: isDark ? Colors.white38
+                                  : const Color(0xFF94A3B8)),
+                        ),
+                        const SizedBox(height: 14),
+                        GradientButton(
+                          label: 'Submit for Verification',
+                          loading: _submitting,
+                          onPressed: _txnController.text.trim().isEmpty
+                              ? null
+                              : _submitPayment,
+                          height: 52,
+                        ),
+                        if (_paymentStatus == 'pending')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 14, height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 1.5,
+                                      color: MacroSnapTheme.emerald),
+                                ),
+                                const SizedBox(width: 8),
+                                Text('Awaiting confirmation...',
+                                    style: TextStyle(fontSize: 13,
+                                        color: MacroSnapTheme.emerald,
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text('Pay \u20B949 to this UPI ID from any app',
-                      style: TextStyle(fontSize: 12,
-                          color: isDark ? Colors.white30
-                              : const Color(0xFF94A3B8))),
+                  const SizedBox(height: 8),
                 ],
               ],
               if (_subscribed) ...[
@@ -591,12 +629,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               children: [
                 Text(title,
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white
-                            : const Color(0xFF1E293B))),
+                        color: isDark ? Colors.white : const Color(0xFF1E293B))),
                 Text(subtitle,
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w400,
-                        color: isDark ? Colors.white38
-                            : const Color(0xFF94A3B8))),
+                        color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
               ],
             ),
           ),
