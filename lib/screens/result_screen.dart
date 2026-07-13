@@ -24,6 +24,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   bool _isAnalyzing = true;
   String? _error;
   NutritionResult? _result;
+  int _grams = 100;
 
   @override
   void initState() {
@@ -53,14 +54,8 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     try {
       final result = await GeminiService.analyzeFoodImage(widget.imagePath);
       if (mounted) {
-        final grams = await _promptGrams();
-        if (grams != null) {
-          setState(() { _result = result.withGrams(grams); _isAnalyzing = false; });
-          _animController.forward();
-        } else {
-          setState(() { _result = result; _isAnalyzing = false; });
-          _animController.forward();
-        }
+        setState(() { _result = result; _isAnalyzing = false; });
+        _animController.forward();
       }
     } catch (e) {
       if (mounted) {
@@ -70,46 +65,54 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     }
   }
 
-  Future<int?> _promptGrams() async {
-    final controller = TextEditingController(text: '250');
-    final grams = await showDialog<int>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Portion Size'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _buildGramAdjuster(bool isDark) {
+    return GlassCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
           children: [
-            const Text('How many grams is this meal?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Grams',
-                suffixText: 'g',
-                border: OutlineInputBorder(),
+            Icon(Icons.scale_rounded, size: 18,
+                color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
+            const SizedBox(width: 10),
+            Text('Serving Size',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white60 : const Color(0xFF64748B))),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => setState(() => _grams = _grams >= 50 ? _grams - 25 : 25),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.remove_rounded, size: 18, color: MacroSnapTheme.emerald),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text('$_grams',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B))),
+            const SizedBox(width: 4),
+            Text('g',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: () => setState(() => _grams = _grams <= 975 ? _grams + 25 : 1000),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.add_rounded, size: 18, color: MacroSnapTheme.emerald),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Skip'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final val = int.tryParse(controller.text);
-              Navigator.pop(ctx, val != null && val > 0 ? val : null);
-            },
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
-    controller.dispose();
-    return grams;
   }
 
   @override
@@ -249,7 +252,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   }
 
   Widget _buildResults(bool isDark) {
-    final r = _result!;
+    final r = _result!.withGrams(_grams);
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
@@ -267,7 +270,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          _buildGramAdjuster(isDark),
+          const SizedBox(height: 12),
           SlideTransition(
             position: _slideAnim,
             child: Column(
