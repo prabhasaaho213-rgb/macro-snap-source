@@ -55,7 +55,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     await DietPlanService.instance.load();
     final p = DietPlanService.instance.profile;
     final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString('name') ?? '';
+    var name = prefs.getString('name') ?? '';
+    final phone = prefs.getString('phone') ?? '';
+    final isPlaceholder = name.isEmpty || name == phone || name.startsWith('guest_') || RegExp(r'^\+?[0-9]+$').hasMatch(name);
+    if (isPlaceholder) {
+      final newName = await _promptName();
+      if (newName != null && newName.isNotEmpty) {
+        await prefs.setString('name', newName);
+        name = newName;
+      }
+    }
     await StreakService.checkAndUpdate();
     final streak = await StreakService.getCurrent();
     final best = await StreakService.getBest();
@@ -71,6 +80,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       });
       _animController.forward();
     }
+  }
+
+  Future<String?> _promptName() async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('What should we call you?'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 15,
+          decoration: const InputDecoration(
+            hintText: 'Your name (max 15 chars)',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Skip'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return name;
   }
 
   void _computeWeekSummary() {

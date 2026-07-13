@@ -164,8 +164,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
         content: TextField(
           controller: ctrl,
           autofocus: true,
+          maxLength: 15,
           decoration: const InputDecoration(
-            hintText: 'Your name',
+            hintText: 'Your name (max 15 chars)',
             border: OutlineInputBorder(),
           ),
           textCapitalization: TextCapitalization.words,
