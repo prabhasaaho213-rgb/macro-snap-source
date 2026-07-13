@@ -92,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
                 }, isDark),
                 const Divider(height: 24),
-                _settingTile(Icons.info_outline_rounded, 'App Version', '1.2.0', null, isDark),
+                _settingTile(Icons.info_outline_rounded, 'App Version', '1.2.1', null, isDark),
                 const Divider(height: 24),
                 _settingTile(Icons.mail_outline_rounded, 'Contact Support', 'macro.snap@email.com', () async {
                   // No-op, just display

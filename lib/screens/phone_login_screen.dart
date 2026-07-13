@@ -17,7 +17,7 @@ class PhoneLoginScreen extends StatefulWidget {
 }
 
 class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
-  final _phoneController = TextEditingController(text: '+91 ');
+  final _phoneController = TextEditingController(text: '+91');
   final _otpControllers = List.generate(6, (_) => TextEditingController());
   final _otpFocusNodes = List.generate(6, (_) => FocusNode());
   final _googleSignIn = GoogleSignIn(
@@ -56,8 +56,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   Future<void> _sendOtp() async {
-    final phone = _phoneController.text.trim();
-    if (phone.length < 10) {
+    final phone = _phoneController.text.replaceAll(RegExp(r'\s+'), '');
+    if (phone.replaceAll(RegExp(r'[^0-9]'), '').length < 10) {
       setState(() => _error = 'Enter a valid phone number');
       return;
     }
@@ -107,7 +107,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   Future<void> _signIn(AuthCredential credential) async {
     try {
       await FirebaseAuth.instance.signInWithCredential(credential);
-      final phone = FirebaseAuth.instance.currentUser?.phoneNumber ?? _phoneController.text.trim();
+      final phone = FirebaseAuth.instance.currentUser?.phoneNumber ?? _phoneController.text.replaceAll(RegExp(r'\s+'), '');
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('phone', phone);
       try {

@@ -300,7 +300,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               const SizedBox(height: 8),
               Text(
                 _subscribed
-                    ? 'Enjoy all features. $_daysRemaining'
+                    ? 'Enjoy all features. ${_daysRemaining()}'
                     : 'Everything you need to hit your goals',
                 textAlign: TextAlign.center,
                 style: TextStyle(
