@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/theme.dart';
 import 'subscription_screen.dart';
 import 'phone_login_screen.dart';
@@ -127,9 +128,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
                 }, isDark),
                 const Divider(height: 24),
-                _settingTile(Icons.info_outline_rounded, 'App Version', '1.2.1', null, isDark),
+                _settingTile(Icons.info_outline_rounded, 'App Version', '1.4.0', null, isDark),
                 const Divider(height: 24),
-                _settingTile(Icons.mail_outline_rounded, 'Contact Support', 'macro.snap@email.com', null, isDark),
+                _settingTile(Icons.mail_outline_rounded, 'Contact Support', 'macrosnap7@gmail.com', () async {
+                  final uri = Uri.parse('mailto:macrosnap7@gmail.com');
+                  if (await canLaunchUrl(uri)) await launchUrl(uri);
+                }, isDark),
                 const Divider(height: 24),
                 _settingTile(Icons.logout_rounded, 'Log Out', 'Sign out and return to login', () => _logout(context, isDark), isDark),
               ]),

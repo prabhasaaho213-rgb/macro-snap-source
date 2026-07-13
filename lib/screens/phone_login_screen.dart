@@ -125,11 +125,18 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
       final phone = FirebaseAuth.instance.currentUser?.phoneNumber ?? _phoneController.text.replaceAll(RegExp(r'\s+'), '');
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('phone', phone);
+      if (prefs.getString('name') == null || prefs.getString('name')!.isEmpty) {
+        final name = await _promptName();
+        if (name != null && name.isNotEmpty) {
+          await prefs.setString('name', name);
+        }
+      }
+      final name = prefs.getString('name') ?? '';
       try {
         await http.post(
           Uri.parse('https://macro-snap-backend-production.up.railway.app/register'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'phone': phone}),
+          body: jsonEncode({'phone': phone, 'name': name}),
         );
       } catch (_) {}
       if (mounted) {
@@ -142,6 +149,41 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
     } catch (e) {
       if (mounted) setState(() { _verifying = false; _error = 'Verification failed: ${e.toString()}'; });
     }
+  }
+
+  Future<String?> _promptName() async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('What should we call you?'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Your name',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Skip'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return name;
   }
 
   Future<void> _signInWithGoogle() async {
@@ -237,11 +279,18 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
     final guestId = 'guest_${Random().nextInt(999999)}';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('phone', guestId);
+    if (prefs.getString('name') == null || prefs.getString('name')!.isEmpty) {
+      final name = await _promptName();
+      if (name != null && name.isNotEmpty) {
+        await prefs.setString('name', name);
+      }
+    }
+    final name = prefs.getString('name') ?? 'Guest';
     try {
       await http.post(
         Uri.parse('https://macro-snap-backend-production.up.railway.app/register'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': guestId, 'name': 'Guest'}),
+        body: jsonEncode({'phone': guestId, 'name': name}),
       );
     } catch (_) {}
     if (mounted) {

@@ -150,7 +150,7 @@ class NotificationService {
     await _plugin.zonedSchedule(
       3,
       'Your Pro subscription has expired',
-      'Renew now for ₹49 to get full access again.',
+      'Renew now for ₹29 to get full access again.',
       tz.TZDateTime.from(expiredDate, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(

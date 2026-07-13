@@ -243,7 +243,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   }
 
   void _openUpiApp() async {
-    final uri = Uri.parse('upi://pay?pa=7569086885@yespop&pn=MacroSnap&am=49&cu=INR&tn=MacroSnap+Pro+Subscription');
+    final uri = Uri.parse('upi://pay?pa=7569086885@yespop&pn=MacroSnap&am=29&cu=INR&tn=MacroSnap+Pro+Subscription');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
@@ -434,7 +434,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                                         fontWeight: FontWeight.w700,
                                         color: isDark ? Colors.white
                                             : const Color(0xFF1E293B))),
-                                Text('Send \u20B949 to the ID below',
+                                Text('Send \u20B929 to the ID below',
                                     style: TextStyle(fontSize: 13,
                                         color: isDark ? Colors.white38
                                             : const Color(0xFF94A3B8))),
@@ -480,7 +480,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text('Tap to copy  |  \u20B949 one-time',
+                      Text('Tap to copy  |  \u20B929 one-time',
                           style: TextStyle(fontSize: 12,
                               color: isDark ? Colors.white30
                                   : const Color(0xFF94A3B8))),

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
 import '../services/meal_store.dart';
 import '../models/meal_record.dart';
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   String _avatar = '😎';
+  String _name = '';
   int _streak = 0;
   int _bestStreak = 0;
   int _scansLeft = 3;
@@ -52,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     await MealStore.instance.load();
     await DietPlanService.instance.load();
     final p = DietPlanService.instance.profile;
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('name') ?? '';
     await StreakService.checkAndUpdate();
     final streak = await StreakService.getCurrent();
     final best = await StreakService.getBest();
@@ -60,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (mounted) {
       setState(() {
         _avatar = p?.avatar ?? '😎';
+        _name = name;
         _streak = streak;
         _bestStreak = best;
         _scansLeft = scans;
@@ -144,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hello, $_avatar',
+                'Hello${_name.isNotEmpty ? ', $_name' : ''}!',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -378,6 +383,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildCalorieCard(BuildContext context, bool isDark) {
+    final profile = DietPlanService.instance.profile;
+    final targetCal = profile?.targetCalories ?? 2000;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: GlassCard(
@@ -437,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          '/ 2,000 kcal',
+                          '/ ${targetCal.toStringAsFixed(0)} kcal',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -451,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
-                      value: (MealStore.instance.todayCalories / 2000).clamp(0.0, 1.0),
+                      value: (MealStore.instance.todayCalories / targetCal).clamp(0.0, 1.0),
                       minHeight: 8,
                       backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                       valueColor: const AlwaysStoppedAnimation<Color>(MacroSnapTheme.emerald),
@@ -471,6 +478,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final c = MealStore.instance.todayCarbs;
     final f = MealStore.instance.todayFats;
     final total = p + c + f;
+    final profile = DietPlanService.instance.profile;
+    final targetProtein = profile?.targetProtein ?? 150;
+    final targetCarbs = profile?.targetCarbs ?? 300;
+    final targetFats = profile?.targetFats ?? 67;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: GlassCard(
@@ -504,23 +515,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 MacroRing(
-                  progress: (p / 150).clamp(0.0, 1.0),
+                  progress: (p / targetProtein).clamp(0.0, 1.0),
                   value: p,
-                  target: 150,
+                  target: targetProtein,
                   label: 'Protein',
                   color: MacroSnapTheme.rose,
                 ),
                 MacroRing(
-                  progress: (c / 300).clamp(0.0, 1.0),
+                  progress: (c / targetCarbs).clamp(0.0, 1.0),
                   value: c,
-                  target: 300,
+                  target: targetCarbs,
                   label: 'Carbs',
                   color: MacroSnapTheme.amber,
                 ),
                 MacroRing(
-                  progress: (f / 67).clamp(0.0, 1.0),
+                  progress: (f / targetFats).clamp(0.0, 1.0),
                   value: f,
-                  target: 67,
+                  target: targetFats,
                   label: 'Fats',
                   color: MacroSnapTheme.blue,
                 ),

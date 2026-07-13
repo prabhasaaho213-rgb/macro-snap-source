@@ -17,6 +17,7 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  late AnimationController _scanLineController;
 
   int _scansLeft = 3;
 
@@ -27,6 +28,10 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    _scanLineController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
     _loadScans();
   }
 
@@ -38,6 +43,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
   @override
   void dispose() {
     _pulseController.dispose();
+    _scanLineController.dispose();
     super.dispose();
   }
 
@@ -119,209 +125,308 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final canUse = _scansLeft > 0;
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0A0E1A) : const Color(0xFF0F172A),
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: isDark ? Colors.white : const Color(0xFF1E293B), size: 20),
+          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Snap & Track'),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const Spacer(),
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 1 + (_pulseController.value * 0.05),
-                    child: child,
-                  );
-                },
-                child: Container(
-                  width: 220,
-                  height: 220,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
-                        blurRadius: 40,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.camera_alt_rounded, size: 64, color: Colors.white),
-                  ),
-                ),
+        title: Text(
+          'Snap & Track',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: (canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: (canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose).withValues(alpha: 0.3),
               ),
-              const SizedBox(height: 32),
-              Text(
-                'Snap a photo of your meal',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Our AI will analyze your food and provide\ninstant nutrition details',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: (canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _scansLeft >= 99
-                      ? 'Unlimited scans'
-                      : '$_scansLeft scan${_scansLeft == 1 ? '' : 's'} remaining this month',
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.flash_on_rounded, size: 14,
+                    color: canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose),
+                const SizedBox(width: 4),
+                Text(
+                  _scansLeft >= 99 ? 'Unlimited' : '$_scansLeft left',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12, fontWeight: FontWeight.w700,
                     color: canUse ? MacroSnapTheme.emerald : MacroSnapTheme.rose,
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Viewfinder area
+            Expanded(
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return SizedBox(
+                      width: 280,
+                      height: 280,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Outer glow ring
+                          Container(
+                            width: 280,
+                            height: 280,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(40),
+                              border: Border.all(
+                                color: MacroSnapTheme.emerald.withValues(alpha: 0.15 + (_pulseController.value * 0.1)),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: MacroSnapTheme.emerald.withValues(alpha: 0.06 + (_pulseController.value * 0.06)),
+                                  blurRadius: 40,
+                                  spreadRadius: 10,
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Viewfinder frame
+                          Container(
+                            width: 240,
+                            height: 240,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(32),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                width: 1,
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                // Corner accents
+                                CornerAccent(position: CornerPosition.topLeft, animation: _pulseController),
+                                CornerAccent(position: CornerPosition.topRight, animation: _pulseController),
+                                CornerAccent(position: CornerPosition.bottomLeft, animation: _pulseController),
+                                CornerAccent(position: CornerPosition.bottomRight, animation: _pulseController),
+                                // Center icon
+                                Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 72,
+                                        height: 72,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: MacroSnapTheme.emerald.withValues(alpha: 0.15),
+                                          border: Border.all(
+                                            color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 32,
+                                          color: MacroSnapTheme.emerald,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Snap your meal',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white.withValues(alpha: 0.7),
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Scanning line animation
+                                AnimatedBuilder(
+                                  animation: _scanLineController,
+                                  builder: (context, _) {
+                                    return Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      top: 20 + (_scanLineController.value * 200),
+                                      child: Container(
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              MacroSnapTheme.emerald.withValues(alpha: 0.6),
+                                              Colors.transparent,
+                                            ],
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: MacroSnapTheme.emerald.withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Instruction text below viewfinder
+                          Positioned(
+                            bottom: -40,
+                            child: Text(
+                              'Position your food in the frame',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withValues(alpha: 0.4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-              const Spacer(),
-              GlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Choose method',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _ScanOption(
-                      icon: Icons.camera_alt_rounded,
-                      title: 'Take a Photo',
-                      subtitle: 'Capture your meal right now',
-                      gradient: const LinearGradient(
-                        colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
-                      ),
-                      onTap: () => _pickImage(ImageSource.camera),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 12),
-                    _ScanOption(
-                      icon: Icons.photo_library_rounded,
-                      title: 'Choose from Gallery',
-                      subtitle: 'Select an existing photo',
-                      gradient: const LinearGradient(
-                        colors: [MacroSnapTheme.amber, Color(0xFFFBBF24)],
-                      ),
-                      onTap: () => _pickImage(ImageSource.gallery),
-                      isDark: isDark,
-                    ),
+            ),
+            // Bottom action bar
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    isDark ? const Color(0xFF0A0E1A) : const Color(0xFF0F172A),
                   ],
                 ),
               ),
-            ],
-          ),
+              child: Row(
+                children: [
+                  // Gallery button
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickImage(ImageSource.gallery),
+                      child: Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.photo_library_rounded,
+                                color: Colors.white.withValues(alpha: 0.7), size: 22),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Gallery',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Main camera button
+                  GestureDetector(
+                    onTap: () => _pickImage(ImageSource.camera),
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [MacroSnapTheme.emerald, MacroSnapTheme.emeraldLight],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: MacroSnapTheme.emerald.withValues(alpha: 0.4),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_rounded,
+                        size: 30,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Spacer for symmetry
+                  const Expanded(child: SizedBox.shrink()),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ScanOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Gradient gradient;
-  final VoidCallback onTap;
-  final bool isDark;
+enum CornerPosition { topLeft, topRight, bottomLeft, bottomRight }
 
-  const _ScanOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.gradient,
-    required this.onTap,
-    required this.isDark,
-  });
+class CornerAccent extends StatelessWidget {
+  final CornerPosition position;
+  final Animation<double> animation;
+  const CornerAccent({super.key, required this.position, required this.animation});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [
-              gradient.colors.first.withValues(alpha: 0.1),
-              gradient.colors.last.withValues(alpha: 0.1),
-            ],
+    final align = switch (position) {
+      CornerPosition.topLeft => Alignment.topLeft,
+      CornerPosition.topRight => Alignment.topRight,
+      CornerPosition.bottomLeft => Alignment.bottomLeft,
+      CornerPosition.bottomRight => Alignment.bottomRight,
+    };
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, _) => Align(
+        alignment: align,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: MacroSnapTheme.emerald.withValues(alpha: 0.3 + (animation.value * 0.2)),
+            borderRadius: switch (position) {
+              CornerPosition.topLeft => const BorderRadius.only(topLeft: Radius.circular(24)),
+              CornerPosition.topRight => const BorderRadius.only(topRight: Radius.circular(24)),
+              CornerPosition.bottomLeft => const BorderRadius.only(bottomLeft: Radius.circular(24)),
+              CornerPosition.bottomRight => const BorderRadius.only(bottomRight: Radius.circular(24)),
+            },
           ),
-          border: Border.all(
-            color: gradient.colors.first.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: gradient,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                color: isDark ? Colors.white30 : const Color(0xFF94A3B8)),
-          ],
         ),
       ),
     );
