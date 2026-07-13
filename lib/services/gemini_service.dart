@@ -9,6 +9,8 @@ class NutritionResult {
   final double carbsPer100g;
   final double fatsPer100g;
   final double fiberPer100g;
+  final double sugarPer100g;
+  final String suitableFor;
   final String description;
   final double confidence;
   final int grams;
@@ -20,6 +22,8 @@ class NutritionResult {
     required this.carbsPer100g,
     required this.fatsPer100g,
     required this.fiberPer100g,
+    this.sugarPer100g = 0,
+    this.suitableFor = 'both',
     required this.description,
     this.confidence = 0.85,
     this.grams = 100,
@@ -30,6 +34,7 @@ class NutritionResult {
   double get carbs => carbsPer100g * grams / 100;
   double get fats => fatsPer100g * grams / 100;
   double get fiber => fiberPer100g * grams / 100;
+  double get sugar => sugarPer100g * grams / 100;
 
   NutritionResult withGrams(int g) {
     return NutritionResult(
@@ -39,6 +44,8 @@ class NutritionResult {
       carbsPer100g: carbsPer100g,
       fatsPer100g: fatsPer100g,
       fiberPer100g: fiberPer100g,
+      sugarPer100g: sugarPer100g,
+      suitableFor: suitableFor,
       description: description,
       confidence: confidence,
       grams: g,
@@ -53,6 +60,8 @@ class NutritionResult {
       carbsPer100g: (json['carbs_g_per_100g'] as num?)?.toDouble() ?? (json['carbs_g'] as num?)?.toDouble() ?? 0,
       fatsPer100g: (json['fats_g_per_100g'] as num?)?.toDouble() ?? (json['fats_g'] as num?)?.toDouble() ?? 0,
       fiberPer100g: (json['fiber_g_per_100g'] as num?)?.toDouble() ?? (json['fiber_g'] as num?)?.toDouble() ?? 0,
+      sugarPer100g: (json['sugar_g_per_100g'] as num?)?.toDouble() ?? 0,
+      suitableFor: json['suitable_for'] as String? ?? 'both',
       description: json['description'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.7,
     );

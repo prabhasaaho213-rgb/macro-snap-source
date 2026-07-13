@@ -308,6 +308,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                         _buildNutrientRow('Calories', r.calories, 'kcal', MacroSnapTheme.amber, isDark),
                         _buildNutrientRow('Protein', r.protein, 'g', MacroSnapTheme.rose, isDark),
                         _buildNutrientRow('Carbs', r.carbs, 'g', MacroSnapTheme.amber, isDark),
+                        _buildNutrientRow('Sugar', r.sugar, 'g', const Color(0xFFDB2777), isDark),
                         _buildNutrientRow('Fats', r.fats, 'g', MacroSnapTheme.blue, isDark),
                         _buildNutrientRow('Fiber', r.fiber, 'g', MacroSnapTheme.emerald, isDark),
                       ],
@@ -419,7 +420,39 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             ),
           ),
         ),
+        const Spacer(),
+        _buildSuitabilityBadge(isDark, r),
       ],
+    );
+  }
+
+  Widget _buildSuitabilityBadge(bool isDark, NutritionResult r) {
+    final isBulk = r.suitableFor == 'bulk';
+    final isDiet = r.suitableFor == 'diet';
+    final color = isBulk ? MacroSnapTheme.blue : isDiet ? MacroSnapTheme.rose : MacroSnapTheme.emerald;
+    final icon = isBulk ? Icons.fitness_center_rounded : isDiet ? Icons.eco_rounded : Icons.check_circle_rounded;
+    final label = isBulk ? 'Best for Bulk' : isDiet ? 'Best for Diet' : 'Balanced';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
