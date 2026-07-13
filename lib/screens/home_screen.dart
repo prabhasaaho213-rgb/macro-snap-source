@@ -327,15 +327,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 const Spacer(),
                 GestureDetector(
                   onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     try {
                       await ShareService.shareWeekSummary();
                     } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.toString()),
-                              behavior: SnackBarBehavior.floating),
-                        );
-                      }
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(e.toString()),
+                            behavior: SnackBarBehavior.floating),
+                      );
                     }
                   },
                   child: Container(
