@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../core/theme.dart';
 import 'subscription_screen.dart';
+import 'phone_login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,6 +32,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _subscribed = prefs.getBool('subscribed') ?? false;
       _subscribedDate = prefs.getString('subscribed_at');
     });
+  }
+
+  Future<void> _logout(BuildContext context, bool isDark) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: MacroSnapTheme.rose),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -94,9 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 24),
                 _settingTile(Icons.info_outline_rounded, 'App Version', '1.2.1', null, isDark),
                 const Divider(height: 24),
-                _settingTile(Icons.mail_outline_rounded, 'Contact Support', 'macro.snap@email.com', () async {
-                  // No-op, just display
-                }, isDark),
+                _settingTile(Icons.mail_outline_rounded, 'Contact Support', 'macro.snap@email.com', null, isDark),
+                const Divider(height: 24),
+                _settingTile(Icons.logout_rounded, 'Log Out', 'Sign out and return to login', () => _logout(context, isDark), isDark),
               ]),
             ),
             const SizedBox(height: 20),
