@@ -35,6 +35,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   @override
   void initState() {
     super.initState();
+    _txnController.addListener(() => setState(() {}));
     _loadState();
   }
 
