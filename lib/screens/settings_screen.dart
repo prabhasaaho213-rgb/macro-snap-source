@@ -176,7 +176,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
                 }, isDark),
                 const Divider(height: 24),
-                _settingTile(Icons.info_outline_rounded, 'App Version', '1.4.0', null, isDark),
+                _settingTile(Icons.dark_mode_rounded, 'Theme', 'Switch between Light, Dark, or System', () => _showThemeDialog(isDark), isDark),
+                const Divider(height: 24),
+                _settingTile(Icons.info_outline_rounded, 'App Version', '1.4.4', null, isDark),
                 const Divider(height: 24),
                 _settingTile(Icons.mail_outline_rounded, 'Contact Support', 'macrosnap7@gmail.com', () async {
                   final uri = Uri.parse('mailto:macrosnap7@gmail.com');
@@ -192,6 +194,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showThemeDialog(bool isDark) async {
+    final current = themeModeNotifier.value;
+    final result = await showDialog<ThemeMode>(
+      context: context,
+      builder: (ctx) {
+        ThemeMode selected = current;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text('Choose Theme',
+                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1E293B))),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final mode in ThemeMode.values)
+                RadioListTile<ThemeMode>(
+                  value: mode,
+                  groupValue: selected,
+                  title: Text(_themeModeLabel(mode),
+                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                  subtitle: Text(_themeModeSubtitle(mode),
+                      style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                  activeColor: MacroSnapTheme.emerald,
+                  onChanged: (v) {
+                    setDialogState(() { selected = v!; });
+                  },
+                ),
+            ]),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, selected),
+                child: const Text('Apply'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (result != null && result != current) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('theme_mode', result.name);
+      themeModeNotifier.value = result;
+    }
+  }
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system: return 'System default';
+      case ThemeMode.light: return 'Light';
+      case ThemeMode.dark: return 'Dark';
+    }
+  }
+
+  String _themeModeSubtitle(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system: return 'Follow your device setting';
+      case ThemeMode.light: return 'Always light background';
+      case ThemeMode.dark: return 'Always dark background';
+    }
   }
 
   Widget _settingTile(IconData icon, String title, String subtitle, VoidCallback? onTap, bool isDark) {

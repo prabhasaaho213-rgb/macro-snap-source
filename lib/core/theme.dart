@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
+
 class MacroSnapTheme {
   static const Color emerald = Color(0xFF059669);
   static const Color emeraldLight = Color(0xFF34D399);
