@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../core/theme.dart';
 import '../services/scan_gate.dart';
 import '../widgets/gradient_button.dart';
@@ -54,6 +55,11 @@ class _ScanScreenState extends State<ScanScreen>
   }
 
   Future<void> _initCamera() async {
+    final status = await Permission.camera.request();
+    if (status.isDenied || status.isPermanentlyDenied) {
+      if (mounted) setState(() => _cameraError = true);
+      return;
+    }
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
