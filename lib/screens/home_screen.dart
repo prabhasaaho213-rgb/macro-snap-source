@@ -540,23 +540,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Macronutrients',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                Flexible(
+                  child: Text(
+                    'Macronutrients',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    ),
                   ),
                 ),
                 if (total > 0)
-                  Text(
-                    '${(p / max(total, 1) * 100).round()}% P · ${(c / max(total, 1) * 100).round()}% C · ${(f / max(total, 1) * 100).round()}% F',
-                    style: TextStyle(
-                      fontSize: 12,
+                  Flexible(
+                    child: Text(
+                      '${(p / max(total, 1) * 100).round()}% P · ${(c / max(total, 1) * 100).round()}% C · ${(f / max(total, 1) * 100).round()}% F',
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
                     ),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 20),

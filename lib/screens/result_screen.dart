@@ -452,23 +452,29 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      dish.name,
-                      style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700, color: MacroSnapTheme.emerald,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: MacroSnapTheme.emerald.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        dish.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700, color: MacroSnapTheme.emerald,
+                        ),
                       ),
                     ),
                   ),
                   if (dish.portionDescription.isNotEmpty) ...[
                     const SizedBox(width: 8),
-                    Text(dish.portionDescription,
-                        style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                    Flexible(
+                      child: Text(dish.portionDescription,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                    ),
                   ],
                   const Spacer(),
                   Container(
@@ -488,10 +494,10 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDishMacro('P', (dish.proteinPer100g * ratio), MacroSnapTheme.rose),
-                  _buildDishMacro('C', (dish.carbsPer100g * ratio), MacroSnapTheme.amber),
-                  _buildDishMacro('F', (dish.fatsPer100g * ratio), MacroSnapTheme.blue),
-                  _buildDishMacro('Fib', (dish.fiberPer100g * ratio), MacroSnapTheme.emerald),
+                  _buildDishMacro('P', (dish.proteinPer100g * ratio), MacroSnapTheme.rose, isDark),
+                  _buildDishMacro('C', (dish.carbsPer100g * ratio), MacroSnapTheme.amber, isDark),
+                  _buildDishMacro('F', (dish.fatsPer100g * ratio), MacroSnapTheme.blue, isDark),
+                  _buildDishMacro('Fib', (dish.fiberPer100g * ratio), MacroSnapTheme.emerald, isDark),
                 ],
               ),
             ],
@@ -501,7 +507,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildDishMacro(String label, double value, Color color) {
+  Widget _buildDishMacro(String label, double value, Color color, bool isDark) {
     return Column(
       children: [
         Text(
@@ -510,7 +516,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         ),
         Text(label,
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
-                color: const Color(0xFF94A3B8))),
+                color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
       ],
     );
   }

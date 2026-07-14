@@ -272,6 +272,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           ]),
           const SizedBox(height: 8),
           Text('BMI ${bmi.toStringAsFixed(1)} | BMR ${p.bmr.round()} kcal | TDEE ${p.tdee.round()} kcal',
+              overflow: TextOverflow.ellipsis, maxLines: 1,
               style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
           const Divider(height: 20),
           Row(
@@ -341,8 +342,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             if (_aiError.isNotEmpty)
               Container(
                 width: double.infinity, padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
-                child: Text(_aiError, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12)),
+                decoration: BoxDecoration(
+                  color: isDark ? MacroSnapTheme.rose.withValues(alpha: 0.15) : const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_aiError, style: TextStyle(color: isDark ? MacroSnapTheme.rose : const Color(0xFFDC2626), fontSize: 12)),
               ),
             GradientButton(
               label: _generating ? 'Generating...' : _subscribed ? 'Generate AI Meal Plan' : 'Subscribe to Unlock AI Plan',
@@ -430,10 +434,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         Text('$current / $target', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
       ]),
       const SizedBox(height: 6),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: LinearProgressIndicator(value: ratio, minHeight: 8, backgroundColor: const Color(0xFFE2E8F0), valueColor: AlwaysStoppedAnimation<Color>(color)),
-      ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(value: ratio, minHeight: 8, backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), valueColor: AlwaysStoppedAnimation<Color>(color)),
+        ),
     ]);
   }
 

@@ -120,6 +120,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   }
 
   void _showSubmitted() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -142,12 +143,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                     color: MacroSnapTheme.emerald, size: 40),
               ),
               const SizedBox(height: 20),
-              const Text('Payment Submitted',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              Text('Payment Submitted',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B))),
               const SizedBox(height: 8),
               Text('Your payment is being verified.\nYou\'ll get access once confirmed.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                  style: TextStyle(fontSize: 14,
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B))),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity, height: 48,
@@ -170,6 +173,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   }
 
   void _showConfirmation() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     _animController?.dispose();
     _animController = AnimationController(
       vsync: this,
@@ -205,12 +209,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text('Welcome to Pro!',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                Text('Welcome to Pro!',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B))),
                 const SizedBox(height: 6),
                 Text('Your subscription is now active',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                    style: TextStyle(fontSize: 14,
+                        color: isDark ? Colors.white54 : const Color(0xFF64748B))),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity, height: 48,

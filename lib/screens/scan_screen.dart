@@ -138,6 +138,7 @@ class _ScanScreenState extends State<ScanScreen>
   }
 
   void _showLimitDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -157,13 +158,14 @@ class _ScanScreenState extends State<ScanScreen>
                   color: MacroSnapTheme.amber, size: 32),
             ),
             const SizedBox(height: 16),
-            const Text('Free scans used up',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            Text('Free scans used up',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B))),
             const SizedBox(height: 8),
             Text('You get 3 free AI scans per month.\nGo Pro for unlimited scans.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14,
-                    color: Colors.grey.shade500, height: 1.4)),
+                    color: isDark ? Colors.white54 : const Color(0xFF64748B), height: 1.4)),
             const SizedBox(height: 24),
             GradientButton(
               label: 'Go Pro - \u20B929/mo',
@@ -178,7 +180,8 @@ class _ScanScreenState extends State<ScanScreen>
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text('Maybe later',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                  style: TextStyle(fontSize: 14,
+                      color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
             ),
           ]),
         ),

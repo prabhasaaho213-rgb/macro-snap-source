@@ -168,11 +168,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text(recipe.name, style: TextStyle(
+                Text(recipe.name, overflow: TextOverflow.ellipsis, maxLines: 1, style: TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w700,
                     color: isDark ? Colors.white : const Color(0xFF1E293B))),
                 const SizedBox(height: 6),
                 Text('${recipe.servings} servings · ${recipe.perServingCalories.toStringAsFixed(0)} cal/serving',
+                    overflow: TextOverflow.ellipsis, maxLines: 1,
                     style: TextStyle(fontSize: 13,
                         color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
                 const SizedBox(height: 10),

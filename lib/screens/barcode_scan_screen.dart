@@ -145,12 +145,13 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
                 child: FilledButton(
                   onPressed: () => setState(() { _found = null; _scanning = true; }),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFCBD5E1),
+                    backgroundColor: isDark ? MacroSnapTheme.cardDark : const Color(0xFFCBD5E1),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Scan Again',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                  child: Text('Scan Again',
+                      style: TextStyle(fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white70 : const Color(0xFF475569))),
                 ),
               ),
             ],
