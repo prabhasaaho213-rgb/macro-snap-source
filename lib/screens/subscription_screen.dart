@@ -579,12 +579,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   child: FilledButton(
                     onPressed: null,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFCBD5E1),
+                      backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18)),
                     ),
-                    child: const Text('Subscribed \u2713',
-                        style: TextStyle(color: Color(0xFF64748B),
+                    child: Text('Subscribed \u2713',
+                        style: TextStyle(
+                            color: isDark ? Colors.white54 : const Color(0xFF64748B),
                             fontSize: 16, fontWeight: FontWeight.w700)),
                   ),
                 ),
